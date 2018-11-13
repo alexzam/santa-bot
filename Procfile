@@ -1,0 +1,1 @@
+web: build/install/santabot/bin/santabot
