@@ -9,10 +9,12 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 
 fun main(args: Array<String>) {
+    val dbService = DbService()
+
     embeddedServer(Netty) {
         routing {
             get("/") {
-                call.respondText("Santa watches you", ContentType.Text.Html)
+                call.respondText(dbService.getUrlInfo(), ContentType.Text.Html)
             }
         }
     }.start(wait = true)
