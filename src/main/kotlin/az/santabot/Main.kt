@@ -11,6 +11,7 @@ import io.ktor.server.netty.Netty
 fun main(args: Array<String>) {
     val dbService = DbService()
 
+    println(" ----- Port (?): ${System.getenv("PORT")}")
     embeddedServer(Netty) {
         routing {
             get("/") {
