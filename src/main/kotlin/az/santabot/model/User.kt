@@ -1,0 +1,14 @@
+package az.santabot.model
+
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.JsonProperty
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+class User
+@JsonCreator constructor(
+    @JsonProperty("id") val id: Int,
+    @JsonProperty("first_name") val firstName: String,
+    @JsonProperty("last_name") val lastName: String?,
+    @JsonProperty("username") val username: String?
+)
