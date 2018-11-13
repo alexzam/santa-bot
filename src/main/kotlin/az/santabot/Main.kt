@@ -9,7 +9,11 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 
 fun main(args: Array<String>) {
+
+    // DI for tiny app
     val dbService = DbService()
+    val santaService = SantaService()
+    val TelegramService = TelegramService()
 
     embeddedServer(Netty, System.getenv("PORT").toIntOrNull() ?: 80) {
         routing {
