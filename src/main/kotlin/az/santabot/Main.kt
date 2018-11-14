@@ -1,9 +1,8 @@
 package az.santabot
 
-import az.santabot.model.Update
 import io.ktor.application.call
 import io.ktor.http.ContentType
-import io.ktor.request.receive
+import io.ktor.request.receiveText
 import io.ktor.response.respondText
 import io.ktor.routing.get
 import io.ktor.routing.post
@@ -32,8 +31,9 @@ fun main(args: Array<String>) {
                 call.respondText(dbService.getUrlInfo(), ContentType.Text.Html)
             }
             post("/tg/$incomingToken") {
-                val update = call.receive<Update>()
-                telegramService.onReceiveUpdate(update)
+                //                val update = call.receive<Update>()
+                println("Incoming: " + call.receiveText())
+//                telegramService.onReceiveUpdate(update)
             }
         }
     }.start(wait = true)

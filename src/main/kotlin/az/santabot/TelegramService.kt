@@ -19,7 +19,6 @@ class TelegramService(private val incomingToken: String) {
         val request = methodUrl("setWebhook").httpPost()
             .jsonBody(mapper.writeValueAsString(req))
 
-//        println("Request: " + request.cUrlString())
         return request.awaitString()
     }
 
