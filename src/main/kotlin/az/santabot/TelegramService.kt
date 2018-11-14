@@ -5,8 +5,10 @@ import az.santabot.model.SetWebhookRequest
 import az.santabot.model.Update
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.kittinunf.fuel.httpPost
+import org.slf4j.LoggerFactory
 
 class TelegramService(private val incomingToken: String) {
+    private val logger = LoggerFactory.getLogger(TelegramService::class.java)
     private val token = System.getenv("TG_TOKEN")
     private val ownHost = System.getenv("OWN_HOST")
     private val mapper = ObjectMapper()
@@ -14,13 +16,15 @@ class TelegramService(private val incomingToken: String) {
     suspend fun setupEndpoint(): String {
         val req = SetWebhookRequest("http://$ownHost/tg/$incomingToken")
 
-        return methodUrl("setWebhook").httpPost()
+        val request = methodUrl("setWebhook").httpPost()
             .jsonBody(mapper.writeValueAsString(req))
-            .awaitString()
+
+        logger.info("Request: " + request.cUrlString())
+        return request.awaitString()
     }
 
     fun onReceiveUpdate(update: Update) {
-        println(
+        logger.info(
             """Update received
             |   Id:         ${update.updateId}
             |   Inline id:  ${update.inlineQuery?.id}
