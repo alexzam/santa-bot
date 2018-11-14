@@ -2,7 +2,10 @@ package az.santabot
 
 import az.santabot.model.Update
 import io.ktor.application.call
+import io.ktor.application.install
+import io.ktor.features.ContentNegotiation
 import io.ktor.http.ContentType
+import io.ktor.jackson.jackson
 import io.ktor.request.receive
 import io.ktor.response.respondText
 import io.ktor.routing.get
@@ -27,6 +30,9 @@ fun main(args: Array<String>) {
     GlobalScope.launch { println("Telegram endpoint setup ($incomingToken): " + telegramService.setupEndpoint()) }
 
     embeddedServer(Netty, System.getenv("PORT").toIntOrNull() ?: 80) {
+        install(ContentNegotiation) {
+            jackson {}
+        }
         routing {
             get("/") {
                 call.respondText(dbService.getUrlInfo(), ContentType.Text.Html)

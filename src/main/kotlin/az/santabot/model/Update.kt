@@ -7,6 +7,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 @JsonIgnoreProperties(ignoreUnknown = true)
 class Update
 @JsonCreator constructor(
-    @JsonProperty("update_id") val updateId: Int//,
-//    @JsonProperty("inline_query") val inlineQuery: InlineQuery?
+    @JsonProperty("update_id") val updateId: Int,
+    @JsonProperty("inline_query") val inlineQuery: InlineQuery?
 )
