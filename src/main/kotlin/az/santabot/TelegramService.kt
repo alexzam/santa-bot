@@ -19,12 +19,12 @@ class TelegramService(private val incomingToken: String) {
         val request = methodUrl("setWebhook").httpPost()
             .jsonBody(mapper.writeValueAsString(req))
 
-        logger.info("Request: " + request.cUrlString())
+        println("Request: " + request.cUrlString())
         return request.awaitString()
     }
 
     fun onReceiveUpdate(update: Update) {
-        logger.info(
+        println(
             """Update received
             |   Id:         ${update.updateId}
             |   Inline id:  ${update.inlineQuery?.id}
