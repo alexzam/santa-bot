@@ -32,9 +32,15 @@ fun main(args: Array<String>) {
                 call.respondText(dbService.getUrlInfo(), ContentType.Text.Html)
             }
             post("/tg/$incomingToken") {
-                val update = call.receive<Update>()
-                telegramService.onReceiveUpdate(update)
-                call.respondText("")
+                val update: Update
+                try {
+                    update = call.receive<Update>()
+                    telegramService.onReceiveUpdate(update)
+                    call.respondText("")
+                } catch (e: Exception) {
+                    println(e)
+                    e.printStackTrace()
+                }
             }
         }
     }.start(wait = true)
