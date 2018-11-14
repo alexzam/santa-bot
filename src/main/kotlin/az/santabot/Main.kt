@@ -25,7 +25,7 @@ fun main(args: Array<String>) {
 
     GlobalScope.launch { println("Telegram endpoint setup ($incomingToken): " + telegramService.setupEndpoint()) }
 
-    val server = embeddedServer(Netty, System.getenv("PORT").toIntOrNull() ?: 80) {
+    embeddedServer(Netty, System.getenv("PORT").toIntOrNull() ?: 80) {
         routing {
             get("/") {
                 call.respondText(dbService.getUrlInfo(), ContentType.Text.Html)
@@ -34,6 +34,7 @@ fun main(args: Array<String>) {
                 //                val update = call.receive<Update>()
                 println("Incoming: " + call.receiveText())
 //                telegramService.onReceiveUpdate(update)
+                call.respondText("")
             }
         }
     }.start(wait = true)
