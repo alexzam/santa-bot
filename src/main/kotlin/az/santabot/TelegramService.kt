@@ -14,12 +14,12 @@ class TelegramService(private val incomingToken: String) {
     private val mapper = ObjectMapper()
 
     suspend fun setupEndpoint(): String {
-        val req = SetWebhookRequest("http://$ownHost/tg/$incomingToken")
+        val req = SetWebhookRequest("https://$ownHost/tg/$incomingToken")
 
         val request = methodUrl("setWebhook").httpPost()
             .jsonBody(mapper.writeValueAsString(req))
 
-        println("Request: " + request.cUrlString())
+//        println("Request: " + request.cUrlString())
         return request.awaitString()
     }
 
