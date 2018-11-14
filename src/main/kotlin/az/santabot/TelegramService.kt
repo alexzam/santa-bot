@@ -23,7 +23,7 @@ class TelegramService(private val incomingToken: String) {
     }
 
     fun onReceiveUpdate(update: Update) {
-        println(
+        /*println(
             """Update received
             |   Id:         ${update.updateId}
             |   Inline id:  ${update.inlineQuery?.id}
@@ -31,7 +31,7 @@ class TelegramService(private val incomingToken: String) {
             |   From login: ${update.inlineQuery?.from?.username}
             |   Query:      ${update.inlineQuery?.query}
         """.trimMargin()
-        )
+        )*/
     }
 
     fun sendToUser() {}
