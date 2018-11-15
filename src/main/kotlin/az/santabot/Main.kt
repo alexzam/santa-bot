@@ -8,6 +8,7 @@ import io.ktor.features.ContentNegotiation
 import io.ktor.http.ContentType
 import io.ktor.jackson.jackson
 import io.ktor.request.receiveText
+import io.ktor.response.respond
 import io.ktor.response.respondText
 import io.ktor.routing.get
 import io.ktor.routing.post
@@ -25,8 +26,8 @@ fun main(args: Array<String>) {
     // DI for tiny app
     val incomingToken = Random.nextUBytes(10).map { it.toString(16) }.fold("") { acc, s -> acc + s }
     val dbService = DbService()
-    val santaService = SantaService()
-    val telegramService = TelegramService(incomingToken, dbService)
+    val santaService = SantaService(dbService)
+    val telegramService = TelegramService(incomingToken, santaService)
     val mapper = ObjectMapper()
 
     GlobalScope.launch { println("Telegram endpoint setup ($incomingToken): " + telegramService.setupEndpoint()) }
@@ -45,8 +46,7 @@ fun main(args: Array<String>) {
                     val receiveText = call.receiveText()
                     println("IN: $receiveText")
                     update = mapper.readValue(receiveText, Update::class.java)
-                    telegramService.onReceiveUpdate(update)
-                    call.respondText("")
+                    call.respond(telegramService.onReceiveUpdate(update)!!)
                 } catch (e: Exception) {
                     println(e)
                     e.printStackTrace()

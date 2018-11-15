@@ -1,16 +1,16 @@
 package az.santabot
 
 import awaitString
-import az.santabot.model.*
+import az.santabot.model.InlineQueryResponse
+import az.santabot.model.SetWebhookRequest
+import az.santabot.model.Update
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.kittinunf.fuel.httpPost
-import org.slf4j.LoggerFactory
 
 class TelegramService(
     private val incomingToken: String,
-    private val dbService: DbService
+    private val santaService: SantaService
 ) {
-    private val logger = LoggerFactory.getLogger(TelegramService::class.java)
     private val token = System.getenv("TG_TOKEN")
     private val ownHost = System.getenv("OWN_HOST")
     private val mapper = ObjectMapper()
@@ -27,19 +27,7 @@ class TelegramService(
     fun onReceiveUpdate(update: Update): InlineQueryResponse? {
         if (update.inlineQuery != null) {
             // Get groups list
-            val groups = dbService.getGroups(update.inlineQuery.from.id)
-            return InlineQueryResponse(
-                inlineQueryId = update.inlineQuery.id,
-                personal = true,
-                results = groups.map {
-                    InlineQueryResultArticle(
-                        id = it.id.toString(),
-                        title = it.name,
-                        inputMessageContent = InputTextMessageContent("g" + it.id)
-                    )
-                },
-                switchPmText = "New group"
-            )
+            return santaService.processInlineRequest(update.inlineQuery)
         }
         return null
     }
