@@ -7,6 +7,7 @@ import io.ktor.features.ContentNegotiation
 import io.ktor.http.ContentType
 import io.ktor.jackson.jackson
 import io.ktor.request.receive
+import io.ktor.request.receiveText
 import io.ktor.response.respondText
 import io.ktor.routing.get
 import io.ktor.routing.post
@@ -25,7 +26,7 @@ fun main(args: Array<String>) {
     val incomingToken = Random.nextUBytes(10).map { it.toString(16) }.fold("") { acc, s -> acc + s }
     val dbService = DbService()
     val santaService = SantaService()
-    val telegramService = TelegramService(incomingToken)
+    val telegramService = TelegramService(incomingToken, dbService)
 
     GlobalScope.launch { println("Telegram endpoint setup ($incomingToken): " + telegramService.setupEndpoint()) }
 
@@ -40,6 +41,7 @@ fun main(args: Array<String>) {
             post("/tg/$incomingToken") {
                 val update: Update
                 try {
+                    println("IN: " + call.receiveText())
                     update = call.receive<Update>()
                     telegramService.onReceiveUpdate(update)
                     call.respondText("")

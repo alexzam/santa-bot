@@ -1,13 +1,15 @@
 package az.santabot
 
 import awaitString
-import az.santabot.model.SetWebhookRequest
-import az.santabot.model.Update
+import az.santabot.model.*
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.kittinunf.fuel.httpPost
 import org.slf4j.LoggerFactory
 
-class TelegramService(private val incomingToken: String) {
+class TelegramService(
+    private val incomingToken: String,
+    private val dbService: DbService
+) {
     private val logger = LoggerFactory.getLogger(TelegramService::class.java)
     private val token = System.getenv("TG_TOKEN")
     private val ownHost = System.getenv("OWN_HOST")
@@ -22,16 +24,24 @@ class TelegramService(private val incomingToken: String) {
         return request.awaitString()
     }
 
-    fun onReceiveUpdate(update: Update) {
-        println(
-            """Update received
-            |   Id:         ${update.updateId}
-            |   Inline id:  ${update.inlineQuery?.id}
-            |   From:       ${update.inlineQuery?.from?.firstName} ${update.inlineQuery?.from?.lastName}
-            |   From login: ${update.inlineQuery?.from?.username}
-            |   Query:      ${update.inlineQuery?.query}
-        """.trimMargin()
-        )
+    fun onReceiveUpdate(update: Update): InlineQueryResponse? {
+        if (update.inlineQuery != null) {
+            // Get groups list
+            val groups = dbService.getGroups(update.inlineQuery.from.id)
+            return InlineQueryResponse(
+                inlineQueryId = update.inlineQuery.id,
+                personal = true,
+                results = groups.map {
+                    InlineQueryResultArticle(
+                        id = it.id.toString(),
+                        title = it.name,
+                        inputMessageContent = InputTextMessageContent("g" + it.id)
+                    )
+                },
+                switchPmText = "New group"
+            )
+        }
+        return null
     }
 
     fun sendToUser() {}
