@@ -2,6 +2,7 @@ package az.santabot
 
 import java.sql.Connection
 import java.sql.DriverManager
+import java.sql.Statement
 
 
 class DbService {
@@ -49,14 +50,13 @@ class DbService {
             chatStatement.setInt(1, chatId)
             chatStatement.executeUpdate()
 
-            val groupStatement = prepareStatement("INSERT INTO groups(name) VALUES (?)")
+            val groupStatement =
+                prepareStatement("INSERT INTO groups(name) VALUES (?)", Statement.RETURN_GENERATED_KEYS)
             groupStatement.setString(1, name)
             groupStatement.executeUpdate()
             val keys = groupStatement.generatedKeys
             keys.next()
-            val int = keys.getInt(1)
-            println("group id = $int")
-            int
+            keys.getInt(1)
         }
     }
 
