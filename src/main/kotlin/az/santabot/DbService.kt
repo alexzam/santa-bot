@@ -38,7 +38,9 @@ class DbService {
         return withConnection {
             val statement = prepareStatement("SELECT state FROM chats WHERE id = ?")
             statement.setInt(1, id)
-            statement.executeQuery().getInt(1)
+            val resultSet = statement.executeQuery()
+            resultSet.next()
+            resultSet.getInt(1)
         }
     }
 
@@ -51,7 +53,9 @@ class DbService {
             val groupStatement = prepareStatement("INSERT INTO groups(name) VALUES (?)")
             groupStatement.setString(1, name)
             groupStatement.executeUpdate()
-            groupStatement.generatedKeys.getInt(1)
+            val keys = groupStatement.generatedKeys
+            keys.next()
+            keys.getInt(1)
         }
     }
 
