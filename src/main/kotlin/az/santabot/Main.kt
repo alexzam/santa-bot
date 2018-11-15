@@ -1,12 +1,12 @@
 package az.santabot
 
 import az.santabot.model.Update
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.ktor.application.call
 import io.ktor.application.install
 import io.ktor.features.ContentNegotiation
 import io.ktor.http.ContentType
 import io.ktor.jackson.jackson
-import io.ktor.request.receive
 import io.ktor.request.receiveText
 import io.ktor.response.respondText
 import io.ktor.routing.get
@@ -27,6 +27,7 @@ fun main(args: Array<String>) {
     val dbService = DbService()
     val santaService = SantaService()
     val telegramService = TelegramService(incomingToken, dbService)
+    val mapper = ObjectMapper()
 
     GlobalScope.launch { println("Telegram endpoint setup ($incomingToken): " + telegramService.setupEndpoint()) }
 
@@ -41,8 +42,9 @@ fun main(args: Array<String>) {
             post("/tg/$incomingToken") {
                 val update: Update
                 try {
-                    println("IN: " + call.receiveText())
-                    update = call.receive<Update>()
+                    val receiveText = call.receiveText()
+                    println("IN: $receiveText")
+                    update = mapper.readValue(receiveText, Update::class.java)
                     telegramService.onReceiveUpdate(update)
                     call.respondText("")
                 } catch (e: Exception) {

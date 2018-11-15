@@ -1,10 +1,13 @@
 package az.santabot
 
-import az.santabot.model.SetWebhookRequest
-import com.fasterxml.jackson.databind.ObjectMapper
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 
-@Test
-fun testSerialization() {
-    println(ObjectMapper().writeValueAsString(SetWebhookRequest("http://test/tg")))
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class TelegramServiceTest {
+
+    @Test
+    fun testStartInline() {
+
+    }
 }
