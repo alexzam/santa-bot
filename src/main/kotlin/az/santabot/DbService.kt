@@ -56,7 +56,9 @@ class DbService {
             groupStatement.executeUpdate()
             val keys = groupStatement.generatedKeys
             keys.next()
-            keys.getInt(1)
+            val int = keys.getInt(1)
+            println("int = ${int}")
+            int
         }
     }
 
