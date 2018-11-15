@@ -1,6 +1,7 @@
 package az.santabot.util
 
 import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonValue
 
 class Either<T : Any, U : Any>
 @JsonCreator private constructor(val left: T?, val right: U?) {
@@ -8,4 +9,7 @@ class Either<T : Any, U : Any>
         fun <T : Any, U : Any> consLeft(left: T): Either<T, U> = Either(left, null)
         fun <T : Any, U : Any> consRight(right: U): Either<T, U> = Either(null, right)
     }
+
+    @JsonValue
+    fun getValue(): Any = left ?: right!!
 }
