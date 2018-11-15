@@ -5,9 +5,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class Update
-@JsonCreator constructor(
-    @JsonProperty("update_id") val updateId: Int,
-    @JsonProperty("inline_query") val inlineQuery: InlineQuery?,
-    @JsonProperty("message") val message: Message?
+class Message @JsonCreator constructor(
+    @JsonProperty("message_id") val id: Int,
+    @JsonProperty("chat") val chat: Chat,
+    @JsonProperty("from") val from: User?,
+    @JsonProperty("text") val text: String?
 )

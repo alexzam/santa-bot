@@ -1,15 +1,13 @@
 package az.santabot
 
-import az.santabot.model.InlineQuery
-import az.santabot.model.InlineQueryResponse
-import az.santabot.model.InlineQueryResultArticle
-import az.santabot.model.InputTextMessageContent
+import az.santabot.model.*
+import az.santabot.util.Either
 
 class SantaService(private val dbService: DbService) {
 
-    fun processInlineRequest(inlineQuery: InlineQuery): InlineQueryResponse {
+    fun processInlineRequest(inlineQuery: InlineQuery): InlineQueryRequest {
         val groups = dbService.getGroups(inlineQuery.from.id)
-        return InlineQueryResponse(
+        return InlineQueryRequest(
             inlineQueryId = inlineQuery.id,
             personal = true,
             results = groups.map {
@@ -23,6 +21,22 @@ class SantaService(private val dbService: DbService) {
         )
     }
 
+    fun processMessage(message: Message): SendMessageRequest? {
+        return when (message.text) {
+            "/start" -> onStartCommand(message.chat.id)
+            else -> null
+        }
+    }
+
+    private fun onStartCommand(id: Int): SendMessageRequest {
+        return SendMessageRequest(
+            chatId = Either.consLeft(id),
+            text = "Привет! Создаём новую группу Тайного Санты. После того как в неё добавятся все желающие, закройте " +
+                    "приём в группу. После этого все получат имя и логин того, кому должны придумать подарок. А как эта " +
+                    "группа будет называться?"
+        )
+    }
+
     fun startGroup(): Int {
         return 0
     }
@@ -32,6 +46,5 @@ class SantaService(private val dbService: DbService) {
     fun closeGroup(gid: Int) {}
 
     fun deleteGroup(gid: Int) {}
-
     private fun shuffle(gid: Int) {}
 }

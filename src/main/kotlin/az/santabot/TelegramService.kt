@@ -1,7 +1,7 @@
 package az.santabot
 
 import awaitString
-import az.santabot.model.InlineQueryResponse
+import az.santabot.model.Request
 import az.santabot.model.SetWebhookRequest
 import az.santabot.model.Update
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -24,10 +24,12 @@ class TelegramService(
         return request.awaitString()
     }
 
-    fun onReceiveUpdate(update: Update): InlineQueryResponse? {
+    fun onReceiveUpdate(update: Update): Request? {
         if (update.inlineQuery != null) {
-            // Get groups list
             return santaService.processInlineRequest(update.inlineQuery)
+        }
+        if (update.message != null) {
+            return santaService.processMessage(update.message)
         }
         return null
     }
