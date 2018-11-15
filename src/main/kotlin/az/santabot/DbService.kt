@@ -12,7 +12,7 @@ class DbService {
     fun getGroups(uid: Int): List<GroupAnswer> {
         return withConnection {
             val statement =
-                prepareStatement("SELECT g.* FROM groups AS g JOIN user_groups AS ug ON ug.gid=g.id WHERE ug.uid=%")
+                prepareStatement("SELECT g.* FROM groups AS g JOIN user_groups AS ug ON ug.gid=g.id WHERE ug.uid=?")
             statement.setInt(1, uid)
             val results = statement.executeQuery()
 
