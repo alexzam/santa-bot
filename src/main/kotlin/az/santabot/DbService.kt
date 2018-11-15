@@ -28,19 +28,18 @@ class DbService {
 
     fun saveStartChat(id: Int) {
         withConnection {
-            val statement = prepareStatement("INSERT INTO chats(id, started) VALUES (?, NOW())")
-            statement.setInt(1, id)
-            statement.executeUpdate()
+            val statementIns = prepareStatement("INSERT INTO chats(id, started) VALUES (?, NOW()) ")
+            statementIns.setInt(1, id)
+            statementIns.executeUpdate()
         }
     }
 
-    fun findChatState(id: Int): Int {
+    fun findChatState(id: Int): Int? {
         return withConnection {
             val statement = prepareStatement("SELECT state FROM chats WHERE id = ?")
             statement.setInt(1, id)
             val resultSet = statement.executeQuery()
-            resultSet.next()
-            resultSet.getInt(1)
+            if (resultSet.next()) resultSet.getInt(1) else null
         }
     }
 
@@ -59,11 +58,10 @@ class DbService {
         }
     }
 
-    private fun <T : Any> withConnection(action: Connection.() -> T): T {
-        val connection = DriverManager.getConnection(dbUrl)!!
-        val ret = connection.action()
-        connection.close()
-        return ret
+    private fun <T> withConnection(action: Connection.() -> T): T {
+        DriverManager.getConnection(dbUrl)!!.use {
+            return it.action()!!
+        }
     }
 }
 

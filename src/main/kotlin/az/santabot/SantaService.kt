@@ -1,7 +1,6 @@
 package az.santabot
 
 import az.santabot.model.*
-import az.santabot.util.Either
 
 class SantaService(private val dbService: DbService) {
 
@@ -28,15 +27,22 @@ class SantaService(private val dbService: DbService) {
         }
     }
 
-    private fun onStartCommand(id: Int): SendMessageRequest {
+    private fun onStartCommand(id: Int): SendMessageRequest? {
+        val state = dbService.findChatState(id)
+        if (state != null) return onRepeatedStart(id, state)
+
         dbService.saveStartChat(id)
 
         return SendMessageRequest(
-            chatId = Either.consLeft(id),
+            chatId = id,
             text = "Привет! Создаём новую группу Тайного Санты. После того как в неё добавятся все желающие, закройте " +
                     "приём в группу. После этого все получат имя и логин того, кому должны придумать подарок. А как эта " +
                     "группа будет называться?"
         )
+    }
+
+    private fun onRepeatedStart(id: Int, state: Int): SendMessageRequest? {
+        return null
     }
 
     private fun onFreeFormMessage(message: Message): SendMessageRequest? {
@@ -48,7 +54,7 @@ class SantaService(private val dbService: DbService) {
             val groupId = dbService.createGroupInChat(chatId, name)
 
             return SendMessageRequest(
-                chatId = Either.consLeft(chatId),
+                chatId = chatId,
                 text = "Отлично! Группу $name создали и тебя туда добавили.",
                 replyMarkup = InlineKeyboardMarkup(
                     listOf(
