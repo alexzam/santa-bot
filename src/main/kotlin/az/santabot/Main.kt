@@ -46,7 +46,9 @@ fun main(args: Array<String>) {
                     val receiveText = call.receiveText()
                     println("IN: $receiveText")
                     update = mapper.readValue(receiveText, Update::class.java)
-                    call.respond(telegramService.onReceiveUpdate(update) ?: "")
+                    val response = telegramService.onReceiveUpdate(update) ?: ""
+                    println("OUT: $response")
+                    call.respond(response)
                 } catch (e: Exception) {
                     println(e)
                     e.printStackTrace()
