@@ -26,6 +26,35 @@ class DbService {
         }
     }
 
+    fun saveStartChat(id: Int) {
+        withConnection {
+            val statement = prepareStatement("INSERT INTO chats(id, started) VALUES (?, NOW())")
+            statement.setInt(1, id)
+            statement.executeUpdate()
+        }
+    }
+
+    fun findChatState(id: Int): Int {
+        return withConnection {
+            val statement = prepareStatement("SELECT state FROM chats WHERE id = ?")
+            statement.setInt(1, id)
+            statement.executeQuery().getInt(1)
+        }
+    }
+
+    fun createGroupInChat(chatId: Int, name: String): Int {
+        return withConnection {
+            val chatStatement = prepareStatement("UPDATE chats SET state=1 WHERE id=?")
+            chatStatement.setInt(1, chatId)
+            chatStatement.executeUpdate()
+
+            val groupStatement = prepareStatement("INSERT INTO groups(name) VALUES (?)")
+            groupStatement.setString(1, name)
+            groupStatement.executeUpdate()
+            groupStatement.generatedKeys.getInt(1)
+        }
+    }
+
     private fun <T : Any> withConnection(action: Connection.() -> T): T {
         val connection = DriverManager.getConnection(dbUrl)!!
         val ret = connection.action()

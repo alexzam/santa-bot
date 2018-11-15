@@ -24,11 +24,13 @@ class SantaService(private val dbService: DbService) {
     fun processMessage(message: Message): SendMessageRequest? {
         return when (message.text) {
             "/start" -> onStartCommand(message.chat.id)
-            else -> null
+            else -> onFreeFormMessage(message)
         }
     }
 
     private fun onStartCommand(id: Int): SendMessageRequest {
+        dbService.saveStartChat(id)
+
         return SendMessageRequest(
             chatId = Either.consLeft(id),
             text = "Привет! Создаём новую группу Тайного Санты. После того как в неё добавятся все желающие, закройте " +
@@ -37,8 +39,28 @@ class SantaService(private val dbService: DbService) {
         )
     }
 
-    fun startGroup(): Int {
-        return 0
+    private fun onFreeFormMessage(message: Message): SendMessageRequest? {
+        val chatId = message.chat.id
+        val state = dbService.findChatState(chatId)
+        if (state == 0) {
+            // Group creation started
+            val name = message.text ?: "Unnamed"
+            val groupId = dbService.createGroupInChat(chatId, name)
+
+            return SendMessageRequest(
+                chatId = Either.consLeft(chatId),
+                text = "Отлично! Группу $name создали и тебя туда добавили.",
+                replyMarkup = InlineKeyboardMarkup(
+                    listOf(
+                        InlineKeyboardButton(
+                            text = "Закинуть в чат",
+                            switchInlineQuery = "group$groupId"
+                        )
+                    )
+                )
+            )
+        }
+        return null
     }
 
     fun addToGroup(uid: Long, gid: Int) {}
