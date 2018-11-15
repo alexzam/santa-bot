@@ -1,9 +1,11 @@
 package az.santabot.model
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 
 abstract class InlineQueryResult(val type: String, val id: String)
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 class InlineQueryResultArticle(
     id: String,
     val title: String,
