@@ -60,7 +60,7 @@ class DbService {
 
     private fun <T> withConnection(action: Connection.() -> T): T {
         DriverManager.getConnection(dbUrl)!!.use {
-            return it.action()!!
+            return it.action()
         }
     }
 }

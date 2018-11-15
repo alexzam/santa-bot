@@ -11,4 +11,6 @@ class Either<T : Any, U : Any>
 
     @JsonValue
     fun getValue(): Any = left ?: right!!
+
+    fun <R> fold(leftF: (T) -> R, rightF: (U) -> R): R = if (left != null) leftF(left) else rightF(right!!)
 }
