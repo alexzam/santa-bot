@@ -17,7 +17,6 @@ class DbService {
             val results = statement.executeQuery()
 
             val ret = mutableListOf<GroupAnswer>()
-            results.beforeFirst()
             while (results.next()) {
                 ret += GroupAnswer(results.getInt("id"), results.getString("name"))
             }
