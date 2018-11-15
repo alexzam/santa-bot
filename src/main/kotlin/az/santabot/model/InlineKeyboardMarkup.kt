@@ -3,7 +3,8 @@ package az.santabot.model
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 
-class InlineKeyboardMarkup(@JsonProperty("inline_keyboard") val keyboard: List<InlineKeyboardButton>) : ReplyMarkup
+class InlineKeyboardMarkup(@JsonProperty("inline_keyboard") val keyboard: List<List<InlineKeyboardButton>>) :
+    ReplyMarkup
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 class InlineKeyboardButton(

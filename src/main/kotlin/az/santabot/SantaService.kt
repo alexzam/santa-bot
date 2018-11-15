@@ -58,9 +58,11 @@ class SantaService(private val dbService: DbService) {
                 text = "Отлично! Группу $name создали и тебя туда добавили.",
                 replyMarkup = InlineKeyboardMarkup(
                     listOf(
-                        InlineKeyboardButton(
-                            text = "Закинуть в чат",
-                            switchInlineQuery = "group$groupId"
+                        listOf(
+                            InlineKeyboardButton(
+                                text = "Закинуть в чат",
+                                switchInlineQuery = "group$groupId"
+                            )
                         )
                     )
                 )
