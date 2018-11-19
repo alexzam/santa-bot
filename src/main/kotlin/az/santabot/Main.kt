@@ -16,7 +16,6 @@ import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 import kotlin.random.nextUBytes
@@ -49,7 +48,6 @@ fun main(args: Array<String>) {
                     val response = telegramService.onReceiveUpdate(update) ?: ""
                     println("OUT: " + jacksonObjectMapper().writeValueAsString(response))
                     call.respond(response)
-                    delay(10)
                 } catch (e: Exception) {
                     println(e)
                     e.printStackTrace()
