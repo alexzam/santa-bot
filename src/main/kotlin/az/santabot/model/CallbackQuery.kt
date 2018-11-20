@@ -9,5 +9,6 @@ class CallbackQuery
 @JsonCreator constructor(
     @JsonProperty("id") val id: String,
     @JsonProperty("from") val from: User,
-    @JsonProperty("data") val data: String?
+    @JsonProperty("data") val data: String?,
+    @JsonProperty("inline_message_id") val inlineMessageId: String?
 )

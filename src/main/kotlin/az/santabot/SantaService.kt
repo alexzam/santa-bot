@@ -19,7 +19,8 @@ class SantaService(private val dbService: DbService) {
                             it.name,
                             it.authorLogin,
                             it.membersNum
-                        )
+                        ),
+                        parseMode = ParseMode.Markdown
                     ),
                     replyMarkup = InlineKeyboardMarkup(
                         listOf(
