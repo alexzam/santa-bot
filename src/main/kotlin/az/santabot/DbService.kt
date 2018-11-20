@@ -1,5 +1,6 @@
 package az.santabot
 
+import az.santabot.model.User
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.Statement
@@ -19,7 +20,12 @@ class DbService {
 
             val ret = mutableListOf<GroupAnswer>()
             while (results.next()) {
-                ret += GroupAnswer(results.getInt("id"), results.getString("name"))
+                ret += GroupAnswer(
+                    results.getInt("id"),
+                    results.getString("name"),
+                    results.getString("author"),
+                    results.getInt("memberNum")
+                )
             }
             statement.close()
 
@@ -44,15 +50,16 @@ class DbService {
         }
     }
 
-    fun createGroupInChat(chatId: Int, name: String, uid: Int): Int {
+    fun createGroupInChat(chatId: Int, name: String, user: User): Int {
         return withConnection {
             val chatStatement = prepareStatement("UPDATE chats SET state=1 WHERE id=?")
             chatStatement.setInt(1, chatId)
             chatStatement.executeUpdate()
 
             val groupStatement =
-                prepareStatement("INSERT INTO groups(name) VALUES (?)", Statement.RETURN_GENERATED_KEYS)
+                prepareStatement("INSERT INTO groups(name, author) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)
             groupStatement.setString(1, name)
+            groupStatement.setString(2, user.username!!)
             groupStatement.executeUpdate()
             val keys = groupStatement.generatedKeys
             keys.next()
@@ -60,7 +67,7 @@ class DbService {
 
             val memberStatement = prepareStatement("INSERT INTO user_groups(gid, uid) VALUES (?, ?)")
             memberStatement.setInt(1, gid)
-            memberStatement.setInt(2, uid)
+            memberStatement.setInt(2, user.id)
             memberStatement.executeUpdate()
 
             gid
@@ -74,4 +81,9 @@ class DbService {
     }
 }
 
-class GroupAnswer(val id: Int, val name: String)
+class GroupAnswer(
+    val id: Int,
+    val name: String,
+    val authorLogin: String,
+    val membersNum: Int
+)

@@ -13,7 +13,21 @@ class SantaService(private val dbService: DbService) {
                 InlineQueryResultArticle(
                     id = it.id.toString(),
                     title = it.name,
-                    inputMessageContent = InputTextMessageContent("g" + it.id)
+                    description = "Создал: ${it.authorLogin}, в группе ${it.membersNum}",
+                    inputMessageContent = InputTextMessageContent(
+                        makeGroupMessage(
+                            it.name,
+                            it.authorLogin,
+                            it.membersNum
+                        )
+                    ),
+                    replyMarkup = InlineKeyboardMarkup(
+                        listOf(
+                            listOf(
+                                InlineKeyboardButton(text = "Присоединиться", callbackData = "join:${it.id}")
+                            )
+                        )
+                    )
                 )
             },
             switchPmText = "New group"
@@ -51,7 +65,7 @@ class SantaService(private val dbService: DbService) {
         if (state == 0) {
             // Group creation started
             val name = message.text ?: "Unnamed"
-            val groupId = dbService.createGroupInChat(chatId, name, message.from!!.id)
+            val groupId = dbService.createGroupInChat(chatId, name, message.from!!)
 
             return SendMessageRequest(
                 chatId = chatId,
@@ -69,6 +83,14 @@ class SantaService(private val dbService: DbService) {
             )
         }
         return null
+    }
+
+    private fun makeGroupMessage(name: String, authorLogin: String, memberNum: Int): String {
+        return """
+            Группа Тайного Санты "$name"
+            Создал $authorLogin
+            $memberNum участников
+        """.trimIndent()
     }
 
     fun addToGroup(uid: Long, gid: Int) {}
