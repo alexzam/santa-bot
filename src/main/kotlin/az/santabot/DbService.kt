@@ -76,14 +76,17 @@ class DbService {
 
     fun addToGroup(gid: Int, uid: Int) {
         return withConnection {
-            val st = prepareStatement("INSERT INTO user_groups(gid, uid) VALUES (?, ?)")
-            st.setInt(1, gid)
-            st.setInt(2, uid)
-            st.executeUpdate()
+            try {
+                val st = prepareStatement("INSERT INTO user_groups(gid, uid) VALUES (?, ?)")
+                st.setInt(1, gid)
+                st.setInt(2, uid)
+                st.executeUpdate()
 
-            val numSt = prepareStatement("UPDATE groups SET memberNum = memberNum + 1 WHERE id = ?")
-            numSt.setInt(1, gid)
-            numSt.executeUpdate()
+                val numSt = prepareStatement("UPDATE groups SET memberNum = memberNum + 1 WHERE id = ?")
+                numSt.setInt(1, gid)
+                numSt.executeUpdate()
+            } catch (ignored: Exception) {
+            }
         }
     }
 

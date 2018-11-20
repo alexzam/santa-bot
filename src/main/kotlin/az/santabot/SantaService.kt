@@ -45,7 +45,7 @@ class SantaService(private val dbService: DbService) {
         val parts = callbackQuery.data?.split(":")
         return when (parts?.get(0)) {
             "join" -> {
-                dbService.addToGroup(callbackQuery.from.id, parts[1].toInt())
+                dbService.addToGroup(parts[1].toInt(), callbackQuery.from.id)
                 AnswerCallbackQueryRequest(
                     callbackQueryId = callbackQuery.id,
                     text = "Добавились в группу"
