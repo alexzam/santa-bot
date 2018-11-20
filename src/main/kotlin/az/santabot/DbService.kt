@@ -61,6 +61,7 @@ class DbService {
             val memberStatement = prepareStatement("INSERT INTO user_groups(gid, uid) VALUES (?, ?)")
             memberStatement.setInt(1, gid)
             memberStatement.setInt(2, uid)
+            memberStatement.executeUpdate()
 
             gid
         }
