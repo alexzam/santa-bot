@@ -51,7 +51,7 @@ class SantaService(private val dbService: DbService) {
         if (state == 0) {
             // Group creation started
             val name = message.text ?: "Unnamed"
-            val groupId = dbService.createGroupInChat(chatId, name)
+            val groupId = dbService.createGroupInChat(chatId, name, message.from!!.id)
 
             return SendMessageRequest(
                 chatId = chatId,

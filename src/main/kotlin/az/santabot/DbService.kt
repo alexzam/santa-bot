@@ -44,7 +44,7 @@ class DbService {
         }
     }
 
-    fun createGroupInChat(chatId: Int, name: String): Int {
+    fun createGroupInChat(chatId: Int, name: String, uid: Int): Int {
         return withConnection {
             val chatStatement = prepareStatement("UPDATE chats SET state=1 WHERE id=?")
             chatStatement.setInt(1, chatId)
@@ -56,9 +56,13 @@ class DbService {
             groupStatement.executeUpdate()
             val keys = groupStatement.generatedKeys
             keys.next()
-            val int = keys.getInt(1)
-            println("int = ${int}")
-            int
+            val gid = keys.getInt(1)
+
+            val memberStatement = prepareStatement("INSERT INTO user_groups(gid, uid) VALUES (?, ?)")
+            memberStatement.setInt(1, gid)
+            memberStatement.setInt(2, uid)
+
+            gid
         }
     }
 
