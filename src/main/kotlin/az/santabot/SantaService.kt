@@ -41,6 +41,20 @@ class SantaService(private val dbService: DbService) {
         }
     }
 
+    fun processCallbackQuery(callbackQuery: CallbackQuery): Request? {
+        val parts = callbackQuery.data?.split(":")
+        return when (parts?.get(0)) {
+            "join" -> {
+                dbService.addToGroup(callbackQuery.from.id, parts[1].toInt())
+                AnswerCallbackQueryRequest(
+                    callbackQueryId = callbackQuery.id,
+                    text = "Добавились в группу"
+                )
+            }
+            else -> null
+        }
+    }
+
     private fun onStartCommand(id: Int): SendMessageRequest? {
         val state = dbService.findChatState(id)
         if (state != null) return onRepeatedStart(id, state)
@@ -65,7 +79,7 @@ class SantaService(private val dbService: DbService) {
         if (state == 0) {
             // Group creation started
             val name = message.text ?: "Unnamed"
-            val groupId = dbService.createGroupInChat(chatId, name, message.from!!)
+            dbService.createGroupInChat(chatId, name, message.from!!)
 
             return SendMessageRequest(
                 chatId = chatId,
@@ -75,7 +89,7 @@ class SantaService(private val dbService: DbService) {
                         listOf(
                             InlineKeyboardButton(
                                 text = "Закинуть в чат",
-                                switchInlineQuery = "group$groupId"
+                                switchInlineQuery = ""
                             )
                         )
                     )
@@ -87,16 +101,19 @@ class SantaService(private val dbService: DbService) {
 
     private fun makeGroupMessage(name: String, authorLogin: String, memberNum: Int): String {
         return """
-            Группа Тайного Санты "$name"
-            Создал $authorLogin
+            *Группа Тайного Санты "$name"*
+            Создал @$authorLogin
+
             $memberNum участников
+
+            После того как в группу запишутся все жалающие, @$authorLogin её закроет. После этого все смогут узнать, кто
+            кому дарит подарок, однако, состав изменить уже будет нельзя.
         """.trimIndent()
     }
 
     fun addToGroup(uid: Long, gid: Int) {}
 
     fun closeGroup(gid: Int) {}
-
     fun deleteGroup(gid: Int) {}
     private fun shuffle(gid: Int) {}
 }

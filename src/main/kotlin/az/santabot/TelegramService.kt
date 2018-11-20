@@ -31,10 +31,11 @@ class TelegramService(
         if (update.message != null) {
             return santaService.processMessage(update.message)
         }
+        if (update.callbackQuery != null) {
+            return santaService.processCallbackQuery(update.callbackQuery)
+        }
         return null
     }
-
-    fun sendToUser() {}
 
     private fun methodUrl(method: String) = "https://api.telegram.org/bot$token/$method"
 }
