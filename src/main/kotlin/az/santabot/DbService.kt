@@ -88,6 +88,24 @@ class DbService {
         }
     }
 
+    fun removeFromGroup(gid: Int, uid: Int): Boolean {
+        return withConnection {
+            try {
+                val st = prepareStatement("DELETE FROM user_groups WHERE gid = ? AND uid = ?")
+                st.setInt(1, gid)
+                st.setInt(2, uid)
+                if (st.executeUpdate() < 1) return@withConnection false
+
+                val numSt = prepareStatement("UPDATE groups SET memberNum = memberNum - 1 WHERE id = ?")
+                numSt.setInt(1, gid)
+                numSt.executeUpdate()
+                true
+            } catch (ignored: Exception) {
+                false
+            }
+        }
+    }
+
     fun getGroup(gid: Int): Group? {
         return withConnection {
             val st = prepareStatement("SELECT * FROM groups WHERE id = ?")

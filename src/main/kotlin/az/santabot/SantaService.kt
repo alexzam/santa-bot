@@ -32,7 +32,9 @@ class SantaService(private val dbService: DbService) {
     private fun makeActiveGroupButtons(it: Group): List<List<InlineKeyboardButton>> {
         return listOf(
             listOf(
-                InlineKeyboardButton(text = "Присоединиться", callbackData = "join:${it.id}")
+                InlineKeyboardButton(text = "Присоединиться", callbackData = "join:${it.id}"),
+                InlineKeyboardButton(text = "Выйти", callbackData = "leave:${it.id}")
+
             )
         )
     }
@@ -44,7 +46,8 @@ class SantaService(private val dbService: DbService) {
         }
     }
 
-    suspend fun processCallbackQuery(callbackQuery: CallbackQuery): Request? {
+    @Suppress("DeferredResultUnused")
+    fun processCallbackQuery(callbackQuery: CallbackQuery): Request? {
         val parts = callbackQuery.data?.split(":")
         return when (parts?.get(0)) {
             "join" -> {
@@ -52,19 +55,7 @@ class SantaService(private val dbService: DbService) {
                 val added = dbService.addToGroup(gid, callbackQuery.from.id)
 
                 if (added) {
-                    GlobalScope.async {
-                        val group = dbService.getGroup(gid)
-
-                        if (group != null) {
-                            val editRequest = EditMessageTextRequest(
-                                inlineMessageId = callbackQuery.inlineMessageId,
-                                text = makeGroupMessage(group),
-                                parseMode = ParseMode.Markdown,
-                                replyMarkup = InlineKeyboardMarkup(makeActiveGroupButtons(group))
-                            )
-                            telegramService.sendRequest(editRequest)
-                        }
-                    }
+                    updateGroupMessage(gid, callbackQuery.inlineMessageId)
 
                     AnswerCallbackQueryRequest(
                         callbackQueryId = callbackQuery.id,
@@ -77,9 +68,42 @@ class SantaService(private val dbService: DbService) {
                     )
                 }
             }
+            "leave" -> {
+                val gid = parts[1].toInt()
+                val removed = dbService.removeFromGroup(gid, callbackQuery.from.id)
+
+                if (removed) {
+                    updateGroupMessage(gid, callbackQuery.inlineMessageId)
+
+                    AnswerCallbackQueryRequest(
+                        callbackQueryId = callbackQuery.id,
+                        text = "Вышли из группы"
+                    )
+                } else {
+                    AnswerCallbackQueryRequest(
+                        callbackQueryId = callbackQuery.id,
+                        text = "Вы и так не в группе"
+                    )
+                }
+            }
             else -> null
         }
     }
+
+    private fun updateGroupMessage(gid: Int, inlineMessageId: String?) = GlobalScope.async {
+        val group = dbService.getGroup(gid)
+
+        if (group != null) {
+            val editRequest = EditMessageTextRequest(
+                inlineMessageId = inlineMessageId,
+                text = makeGroupMessage(group),
+                parseMode = ParseMode.Markdown,
+                replyMarkup = InlineKeyboardMarkup(makeActiveGroupButtons(group))
+            )
+            telegramService.sendRequest(editRequest)
+        }
+    }
+
 
     private fun onStartCommand(id: Int): SendMessageRequest? {
         val state = dbService.findChatState(id)
