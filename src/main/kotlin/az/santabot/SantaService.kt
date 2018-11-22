@@ -1,8 +1,12 @@
 package az.santabot
 
 import az.santabot.model.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 
 class SantaService(private val dbService: DbService) {
+
+    lateinit var telegramService: TelegramService
 
     fun processInlineRequest(inlineQuery: InlineQuery): InlineQueryRequest {
         val groups = dbService.getGroups(inlineQuery.from.id)
@@ -15,23 +19,21 @@ class SantaService(private val dbService: DbService) {
                     title = it.name,
                     description = "Создал: ${it.authorLogin}, в группе ${it.membersNum}",
                     inputMessageContent = InputTextMessageContent(
-                        makeGroupMessage(
-                            it.name,
-                            it.authorLogin,
-                            it.membersNum
-                        ),
+                        makeGroupMessage(it),
                         parseMode = ParseMode.Markdown
                     ),
-                    replyMarkup = InlineKeyboardMarkup(
-                        listOf(
-                            listOf(
-                                InlineKeyboardButton(text = "Присоединиться", callbackData = "join:${it.id}")
-                            )
-                        )
-                    )
+                    replyMarkup = InlineKeyboardMarkup(makeActiveGroupButtons(it))
                 )
             },
             switchPmText = "New group"
+        )
+    }
+
+    private fun makeActiveGroupButtons(it: Group): List<List<InlineKeyboardButton>> {
+        return listOf(
+            listOf(
+                InlineKeyboardButton(text = "Присоединиться", callbackData = "join:${it.id}")
+            )
         )
     }
 
@@ -42,11 +44,27 @@ class SantaService(private val dbService: DbService) {
         }
     }
 
-    fun processCallbackQuery(callbackQuery: CallbackQuery): Request? {
+    suspend fun processCallbackQuery(callbackQuery: CallbackQuery): Request? {
         val parts = callbackQuery.data?.split(":")
         return when (parts?.get(0)) {
             "join" -> {
-                dbService.addToGroup(parts[1].toInt(), callbackQuery.from.id)
+                val gid = parts[1].toInt()
+                dbService.addToGroup(gid, callbackQuery.from.id)
+
+                GlobalScope.async {
+                    val group = dbService.getGroup(gid)
+
+                    if (group != null) {
+                        val editRequest = EditMessageTextRequest(
+                            inlineMessageId = callbackQuery.inlineMessageId,
+                            text = makeGroupMessage(group),
+                            parseMode = ParseMode.Markdown,
+                            replyMarkup = InlineKeyboardMarkup(makeActiveGroupButtons(group))
+                        )
+                        telegramService.sendRequest(editRequest)
+                    }
+                }
+
                 AnswerCallbackQueryRequest(
                     callbackQueryId = callbackQuery.id,
                     text = "Добавились в группу"
@@ -100,21 +118,40 @@ class SantaService(private val dbService: DbService) {
         return null
     }
 
-    private fun makeGroupMessage(name: String, authorLogin: String, memberNum: Int): String {
+    private fun makeGroupMessage(group: Group): String {
         return """
-            *Группа Тайного Санты "$name"*
-            Создал @$authorLogin
+            *Группа Тайного Санты "${group.name}"*
+            Создал @${group.authorLogin}
 
-            $memberNum участников
+            ${group.membersNum} участников
 
-            После того как в группу запишутся все жалающие, @$authorLogin её закроет. После этого все смогут узнать, кто
+            После того как в группу запишутся все желающие, @${group.authorLogin} её закроет. После этого все смогут узнать, кто
             кому дарит подарок, однако, состав изменить уже будет нельзя.
         """.trimIndent()
     }
 
-    fun addToGroup(uid: Long, gid: Int) {}
-
     fun closeGroup(gid: Int) {}
     fun deleteGroup(gid: Int) {}
-    private fun shuffle(gid: Int) {}
+
+    private fun <T> shuffle(ids: List<T>): Map<T, T> {
+        if (ids.size < 2) {
+            return ids.zip(ids).toMap()
+        }
+
+        val map = ids.zip(ids.shuffled()).toMap().toMutableMap()
+
+        val toReshuffle = map.filter { entry -> entry.key == entry.value }
+        toReshuffle.keys
+            .forEach {
+                var key: T
+                do {
+                    key = map.keys.random()
+                } while (key == it)
+
+                map[it] = map[key]!!
+                map[key] = it
+            }
+
+        return map
+    }
 }

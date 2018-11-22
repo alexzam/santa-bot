@@ -28,6 +28,7 @@ fun main(args: Array<String>) {
     val dbService = DbService()
     val santaService = SantaService(dbService)
     val telegramService = TelegramService(incomingToken, santaService)
+    santaService.telegramService = telegramService
 
     GlobalScope.launch { println("Telegram endpoint setup ($incomingToken): " + telegramService.setupEndpoint()) }
 

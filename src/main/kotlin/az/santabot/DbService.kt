@@ -3,6 +3,7 @@ package az.santabot
 import az.santabot.model.User
 import java.sql.Connection
 import java.sql.DriverManager
+import java.sql.ResultSet
 import java.sql.Statement
 
 
@@ -11,21 +12,16 @@ class DbService {
 
     fun getUrlInfo(): String = "JDU:${System.getenv("JDBC_DATABASE_URL")}, DU:${System.getenv("DATABASE_URL")}"
 
-    fun getGroups(uid: Int): List<GroupAnswer> {
+    fun getGroups(uid: Int): List<Group> {
         return withConnection {
             val statement =
                 prepareStatement("SELECT g.* FROM groups AS g JOIN user_groups AS ug ON ug.gid=g.id WHERE ug.uid=?")
             statement.setInt(1, uid)
             val results = statement.executeQuery()
 
-            val ret = mutableListOf<GroupAnswer>()
+            val ret = mutableListOf<Group>()
             while (results.next()) {
-                ret += GroupAnswer(
-                    results.getInt("id"),
-                    results.getString("name"),
-                    results.getString("author"),
-                    results.getInt("memberNum")
-                )
+                ret += Group(results)
             }
             statement.close()
 
@@ -90,6 +86,16 @@ class DbService {
         }
     }
 
+    fun getGroup(gid: Int): Group? {
+        return withConnection {
+            val st = prepareStatement("SELECT * FROM groups WHERE id = ?")
+            st.setInt(1, gid)
+            val results = st.executeQuery()
+
+            if (results.next()) Group(results) else null
+        }
+    }
+
     private fun <T> withConnection(action: Connection.() -> T): T {
         DriverManager.getConnection(dbUrl)!!.use {
             return it.action()
@@ -97,9 +103,9 @@ class DbService {
     }
 }
 
-class GroupAnswer(
-    val id: Int,
-    val name: String,
-    val authorLogin: String,
-    val membersNum: Int
-)
+class Group(results: ResultSet) {
+    val id = results.getInt("id")
+    val name = results.getString("name")
+    val authorLogin = results.getString("author")
+    val membersNum = results.getInt("memberNum")
+}

@@ -18,13 +18,10 @@ class TelegramService(
     suspend fun setupEndpoint(): String {
         val req = SetWebhookRequest("https://$ownHost/tg/$incomingToken")
 
-        val request = methodUrl("setWebhook").httpPost()
-            .jsonBody(mapper.writeValueAsString(req))
-
-        return request.awaitString()
+        return sendRequest(req)
     }
 
-    fun onReceiveUpdate(update: Update): Request? {
+    suspend fun onReceiveUpdate(update: Update): Request? {
         if (update.inlineQuery != null) {
             return santaService.processInlineRequest(update.inlineQuery)
         }
@@ -35,6 +32,19 @@ class TelegramService(
             return santaService.processCallbackQuery(update.callbackQuery)
         }
         return null
+    }
+
+    suspend fun sendRequest(request: Request): String {
+        val body = mapper.writeValueAsString(request)
+        println("REQ: $body")
+
+        val req = methodUrl(request.method).httpPost()
+            .jsonBody(body)
+
+        val ret = req.awaitString()
+        println("RESP: $ret")
+
+        return ret
     }
 
     private fun methodUrl(method: String) = "https://api.telegram.org/bot$token/$method"
