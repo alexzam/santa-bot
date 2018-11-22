@@ -1,11 +1,14 @@
 package az.santabot
 
-import awaitString
+import awaitStringResult
 import az.santabot.model.Request
 import az.santabot.model.SetWebhookRequest
 import az.santabot.model.Update
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.kittinunf.fuel.httpPost
+import com.github.kittinunf.result.failure
+import com.github.kittinunf.result.getOrElse
+import com.github.kittinunf.result.success
 
 class TelegramService(
     private val incomingToken: String,
@@ -41,10 +44,12 @@ class TelegramService(
         val req = methodUrl(request.method).httpPost()
             .jsonBody(body)
 
-        val ret = req.awaitString()
-        println("RESP: $ret")
+        val ret = req.awaitStringResult()
 
-        return ret
+        ret.failure { println("ERR: ${it.response.data.toString(Charsets.UTF_8)}") }
+        ret.success { println("RESP: $ret") }
+
+        return ret.getOrElse("<no result>")
     }
 
     private fun methodUrl(method: String) = "https://api.telegram.org/bot$token/$method"
