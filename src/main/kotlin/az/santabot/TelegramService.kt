@@ -4,7 +4,7 @@ import awaitStringResult
 import az.santabot.model.Request
 import az.santabot.model.SetWebhookRequest
 import az.santabot.model.Update
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.kittinunf.fuel.httpPost
 import com.github.kittinunf.result.failure
 import com.github.kittinunf.result.getOrElse
@@ -16,7 +16,6 @@ class TelegramService(
 ) {
     private val token = System.getenv("TG_TOKEN")
     private val ownHost = System.getenv("OWN_HOST")
-    private val mapper = ObjectMapper()
 
     suspend fun setupEndpoint(): String {
         val req = SetWebhookRequest("https://$ownHost/tg/$incomingToken")
@@ -38,7 +37,7 @@ class TelegramService(
     }
 
     suspend fun sendRequest(request: Request): String {
-        val body = mapper.writeValueAsString(request)
+        val body = jacksonObjectMapper().writeValueAsString(request)
         println("REQ: $body")
 
         val req = methodUrl(request.method).httpPost()
