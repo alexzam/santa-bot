@@ -70,7 +70,7 @@ class DbService {
         }
     }
 
-    fun addToGroup(gid: Int, uid: Int) {
+    fun addToGroup(gid: Int, uid: Int): Boolean {
         return withConnection {
             try {
                 val st = prepareStatement("INSERT INTO user_groups(gid, uid) VALUES (?, ?)")
@@ -81,7 +81,9 @@ class DbService {
                 val numSt = prepareStatement("UPDATE groups SET memberNum = memberNum + 1 WHERE id = ?")
                 numSt.setInt(1, gid)
                 numSt.executeUpdate()
+                true
             } catch (ignored: Exception) {
+                false
             }
         }
     }

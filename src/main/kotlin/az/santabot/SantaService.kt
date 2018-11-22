@@ -49,26 +49,33 @@ class SantaService(private val dbService: DbService) {
         return when (parts?.get(0)) {
             "join" -> {
                 val gid = parts[1].toInt()
-                dbService.addToGroup(gid, callbackQuery.from.id)
+                val added = dbService.addToGroup(gid, callbackQuery.from.id)
 
-                GlobalScope.async {
-                    val group = dbService.getGroup(gid)
+                if (added) {
+                    GlobalScope.async {
+                        val group = dbService.getGroup(gid)
 
-                    if (group != null) {
-                        val editRequest = EditMessageTextRequest(
-                            inlineMessageId = callbackQuery.inlineMessageId,
-                            text = makeGroupMessage(group),
-                            parseMode = ParseMode.Markdown,
-                            replyMarkup = InlineKeyboardMarkup(makeActiveGroupButtons(group))
-                        )
-                        telegramService.sendRequest(editRequest)
+                        if (group != null) {
+                            val editRequest = EditMessageTextRequest(
+                                inlineMessageId = callbackQuery.inlineMessageId,
+                                text = makeGroupMessage(group),
+                                parseMode = ParseMode.Markdown,
+                                replyMarkup = InlineKeyboardMarkup(makeActiveGroupButtons(group))
+                            )
+                            telegramService.sendRequest(editRequest)
+                        }
                     }
-                }
 
-                AnswerCallbackQueryRequest(
-                    callbackQueryId = callbackQuery.id,
-                    text = "Добавились в группу"
-                )
+                    AnswerCallbackQueryRequest(
+                        callbackQueryId = callbackQuery.id,
+                        text = "Добавились в группу"
+                    )
+                } else {
+                    AnswerCallbackQueryRequest(
+                        callbackQueryId = callbackQuery.id,
+                        text = "Вы и так уже в группе"
+                    )
+                }
             }
             else -> null
         }
