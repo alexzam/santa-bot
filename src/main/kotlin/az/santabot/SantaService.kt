@@ -25,7 +25,7 @@ class SantaService(private val dbService: DbService) {
                     replyMarkup = InlineKeyboardMarkup(makeActiveGroupButtons(it))
                 )
             },
-            switchPmText = "New group"
+            switchPmText = "Новая группа"
         )
     }
 
@@ -34,15 +34,15 @@ class SantaService(private val dbService: DbService) {
             listOf(
                 InlineKeyboardButton(text = "Присоединиться", callbackData = "join:${it.id}"),
                 InlineKeyboardButton(text = "Выйти", callbackData = "leave:${it.id}")
-
             )
         )
     }
 
     fun processMessage(message: Message): SendMessageRequest? {
+        val state = dbService.findChatState(message.chat.id)
         return when (message.text) {
-            "/start" -> onStartCommand(message.chat.id)
-            else -> onFreeFormMessage(message)
+            "/start" -> onStartCommand(message.chat.id, state)
+            else -> onFreeFormMessage(message, state)
         }
     }
 
@@ -105,8 +105,7 @@ class SantaService(private val dbService: DbService) {
     }
 
 
-    private fun onStartCommand(id: Int): SendMessageRequest? {
-        val state = dbService.findChatState(id)
+    private fun onStartCommand(id: Int, state: Int?): SendMessageRequest? {
         if (state != null) return onRepeatedStart(id, state)
 
         dbService.saveStartChat(id)
@@ -123,9 +122,8 @@ class SantaService(private val dbService: DbService) {
         return null
     }
 
-    private fun onFreeFormMessage(message: Message): SendMessageRequest? {
+    private fun onFreeFormMessage(message: Message, state: Int?): SendMessageRequest? {
         val chatId = message.chat.id
-        val state = dbService.findChatState(chatId)
         if (state == 0) {
             // Group creation started
             val name = message.text ?: "Unnamed"
@@ -144,6 +142,15 @@ class SantaService(private val dbService: DbService) {
                         )
                     )
                 )
+            )
+        } else if (state == null || state == 1) {
+            // No started dialog
+            return SendMessageRequest(
+                chatId = chatId,
+                text = """Привет. Команды такие:
+                    |/start - Создать новую группу Тайного Санты
+                    |/close - Закрыть приём в группу
+                """.trimMargin()
             )
         }
         return null
