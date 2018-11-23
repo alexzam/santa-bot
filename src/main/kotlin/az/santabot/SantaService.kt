@@ -40,8 +40,11 @@ class SantaService(private val dbService: DbService) {
 
     fun processMessage(message: Message): SendMessageRequest? {
         val state = dbService.findChatState(message.chat.id)
+        val uid = message.from!!.id
+
         return when (message.text) {
             "/start" -> onStartCommand(message.chat.id, state)
+            "/close" -> onCloseCommand(message.chat.id, state, uid)
             else -> onFreeFormMessage(message, state)
         }
     }
@@ -52,39 +55,11 @@ class SantaService(private val dbService: DbService) {
         return when (parts?.get(0)) {
             "join" -> {
                 val gid = parts[1].toInt()
-                val added = dbService.addToGroup(gid, callbackQuery.from.id)
-
-                if (added) {
-                    updateGroupMessage(gid, callbackQuery.inlineMessageId)
-
-                    AnswerCallbackQueryRequest(
-                        callbackQueryId = callbackQuery.id,
-                        text = "Добавились в группу"
-                    )
-                } else {
-                    AnswerCallbackQueryRequest(
-                        callbackQueryId = callbackQuery.id,
-                        text = "Вы и так уже в группе"
-                    )
-                }
+                onJoinButton(gid, callbackQuery)
             }
             "leave" -> {
                 val gid = parts[1].toInt()
-                val removed = dbService.removeFromGroup(gid, callbackQuery.from.id)
-
-                if (removed) {
-                    updateGroupMessage(gid, callbackQuery.inlineMessageId)
-
-                    AnswerCallbackQueryRequest(
-                        callbackQueryId = callbackQuery.id,
-                        text = "Вышли из группы"
-                    )
-                } else {
-                    AnswerCallbackQueryRequest(
-                        callbackQueryId = callbackQuery.id,
-                        text = "Вы и так не в группе"
-                    )
-                }
+                onLeaveButton(gid, callbackQuery)
             }
             else -> null
         }
@@ -104,7 +79,6 @@ class SantaService(private val dbService: DbService) {
         }
     }
 
-
     private fun onStartCommand(id: Int, state: Int?): SendMessageRequest? {
         if (state != null) return onRepeatedStart(id, state)
 
@@ -115,6 +89,26 @@ class SantaService(private val dbService: DbService) {
             text = "Привет! Создаём новую группу Тайного Санты. После того как в неё добавятся все желающие, закройте " +
                     "приём в группу. После этого все получат имя и логин того, кому должны придумать подарок. А как эта " +
                     "группа будет называться?"
+        )
+    }
+
+    private fun onCloseCommand(chatId: Int, state: Int?, uid: Int): SendMessageRequest? {
+        if (state != null && state != 1) return null
+
+        dbService.startCloseChat(chatId)
+
+        val buttons = dbService.getAdminGroups(uid)
+            .map { listOf(KeyboardButton(it.name)) }
+            .plusElement(listOf(KeyboardButton("Отмена")))
+
+        return SendMessageRequest(
+            chatId,
+            text = "Закрываем приём в группу? Хорошо. Выберите нужную группу.",
+            replyMarkup = ReplyKeyboardMarkup(
+                keyboard = buttons,
+                resizeKeyboard = true,
+                onetimeKeyboard = true
+            )
         )
     }
 
@@ -169,6 +163,7 @@ class SantaService(private val dbService: DbService) {
     }
 
     fun closeGroup(gid: Int) {}
+
     fun deleteGroup(gid: Int) {}
 
     private fun <T> shuffle(ids: List<T>): Map<T, T> {
@@ -191,5 +186,47 @@ class SantaService(private val dbService: DbService) {
             }
 
         return map
+    }
+
+    private fun onJoinButton(
+        gid: Int,
+        callbackQuery: CallbackQuery
+    ): AnswerCallbackQueryRequest {
+        val added = dbService.addToGroup(gid, callbackQuery.from.id)
+
+        return if (added) {
+            updateGroupMessage(gid, callbackQuery.inlineMessageId)
+
+            AnswerCallbackQueryRequest(
+                callbackQueryId = callbackQuery.id,
+                text = "Добавились в группу"
+            )
+        } else {
+            AnswerCallbackQueryRequest(
+                callbackQueryId = callbackQuery.id,
+                text = "Вы и так уже в группе"
+            )
+        }
+    }
+
+    private fun onLeaveButton(
+        gid: Int,
+        callbackQuery: CallbackQuery
+    ): AnswerCallbackQueryRequest {
+        val removed = dbService.removeFromGroup(gid, callbackQuery.from.id)
+
+        return if (removed) {
+            updateGroupMessage(gid, callbackQuery.inlineMessageId)
+
+            AnswerCallbackQueryRequest(
+                callbackQueryId = callbackQuery.id,
+                text = "Вышли из группы"
+            )
+        } else {
+            AnswerCallbackQueryRequest(
+                callbackQueryId = callbackQuery.id,
+                text = "Вы и так не в группе"
+            )
+        }
     }
 }

@@ -116,6 +116,29 @@ class DbService {
         }
     }
 
+    fun startCloseChat(chatId: Int) = withConnection {
+        val st = prepareStatement(
+            "INSERT INTO chats (id, started, state) VALUES (?, now(), 2) " +
+                    "ON CONFLICT(id) DO UPDATE SET started = now(), state = 2"
+        )
+        st.setInt(1, chatId)
+        st.executeUpdate()
+    }
+
+    fun getAdminGroups(uid: Int): List<Group> = withConnection {
+        val st = prepareStatement("SELECT * FROM groups WHERE author = ?")
+        st.setInt(1, uid)
+        val results = st.executeQuery()
+
+        val ret = mutableListOf<Group>()
+        while (results.next()) {
+            ret += Group(results)
+        }
+        st.close()
+
+        ret
+    }
+
     private fun <T> withConnection(action: Connection.() -> T): T {
         DriverManager.getConnection(dbUrl)!!.use {
             return it.action()
