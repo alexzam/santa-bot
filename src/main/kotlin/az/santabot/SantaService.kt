@@ -40,11 +40,11 @@ class SantaService(private val dbService: DbService) {
 
     fun processMessage(message: Message): SendMessageRequest? {
         val state = dbService.findChatState(message.chat.id)
-        val uid = message.from!!.id
+        val login = message.from!!.username!!
 
         return when (message.text) {
             "/start" -> onStartCommand(message.chat.id, state)
-            "/close" -> onCloseCommand(message.chat.id, state, uid)
+            "/close" -> onCloseCommand(message.chat.id, state, login)
             else -> onFreeFormMessage(message, state)
         }
     }
@@ -92,12 +92,12 @@ class SantaService(private val dbService: DbService) {
         )
     }
 
-    private fun onCloseCommand(chatId: Int, state: Int?, uid: Int): SendMessageRequest? {
+    private fun onCloseCommand(chatId: Int, state: Int?, login: String): SendMessageRequest? {
         if (state != null && state != 1) return null
 
         dbService.startCloseChat(chatId)
 
-        val buttons = dbService.getAdminGroups(uid)
+        val buttons = dbService.getAdminGroups(login)
             .map { listOf(KeyboardButton(it.name)) }
             .plusElement(listOf(KeyboardButton("Отмена")))
 
@@ -161,10 +161,6 @@ class SantaService(private val dbService: DbService) {
             кому дарит подарок, однако, состав изменить уже будет нельзя.
         """.trimIndent()
     }
-
-    fun closeGroup(gid: Int) {}
-
-    fun deleteGroup(gid: Int) {}
 
     private fun <T> shuffle(ids: List<T>): Map<T, T> {
         if (ids.size < 2) {

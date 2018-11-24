@@ -125,9 +125,9 @@ class DbService {
         st.executeUpdate()
     }
 
-    fun getAdminGroups(uid: Int): List<Group> = withConnection {
+    fun getAdminGroups(login: String): List<Group> = withConnection {
         val st = prepareStatement("SELECT * FROM groups WHERE author = ?")
-        st.setInt(1, uid)
+        st.setString(1, login)
         val results = st.executeQuery()
 
         val ret = mutableListOf<Group>()
