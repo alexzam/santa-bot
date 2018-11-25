@@ -5,11 +5,23 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 
 class SantaService(private val dbService: DbService) {
+    enum class ChatState(val id: Int) {
+        CreateGetName(0),
+        Idle(1),
+        CloseGetName(2);
+
+        companion object {
+            fun find(id: Int): ChatState? = values().find { it.id == id }
+        }
+    }
 
     lateinit var telegramService: TelegramService
 
+    /**
+     * Mentioned suggest
+     */
     fun processInlineRequest(inlineQuery: InlineQuery): InlineQueryRequest {
-        val groups = dbService.getGroups(inlineQuery.from.id)
+        val groups = dbService.getGroups(inlineQuery.from.username!!)
         return InlineQueryRequest(
             inlineQueryId = inlineQuery.id,
             personal = true,
@@ -22,44 +34,44 @@ class SantaService(private val dbService: DbService) {
                         makeGroupMessage(it),
                         parseMode = ParseMode.Markdown
                     ),
-                    replyMarkup = InlineKeyboardMarkup(makeActiveGroupButtons(it))
+                    replyMarkup = InlineKeyboardMarkup(makeGroupButtons(it))
                 )
             },
             switchPmText = "Новая группа"
         )
     }
 
-    private fun makeActiveGroupButtons(it: Group): List<List<InlineKeyboardButton>> {
-        return listOf(
-            listOf(
-                InlineKeyboardButton(text = "Присоединиться", callbackData = "join:${it.id}"),
-                InlineKeyboardButton(text = "Выйти", callbackData = "leave:${it.id}")
-            )
-        )
-    }
-
+    /**
+     * Personal message
+     */
     fun processMessage(message: Message): SendMessageRequest? {
         val state = dbService.findChatState(message.chat.id)
         val login = message.from!!.username!!
 
-        return when (message.text) {
+        return when (message.text?.trim()) {
             "/start" -> onStartCommand(message.chat.id, state)
             "/close" -> onCloseCommand(message.chat.id, state, login)
             else -> onFreeFormMessage(message, state)
         }
     }
 
+    /**
+     * Button pressed
+     */
     @Suppress("DeferredResultUnused")
     fun processCallbackQuery(callbackQuery: CallbackQuery): Request? {
         val parts = callbackQuery.data?.split(":")
-        return when (parts?.get(0)) {
+        val group = parts?.get(1)?.toInt()?.let { dbService.getGroup(it) } ?: return null
+
+        return when (parts[0]) {
             "join" -> {
-                val gid = parts[1].toInt()
-                onJoinButton(gid, callbackQuery)
+                onJoinButton(group, callbackQuery)
             }
             "leave" -> {
-                val gid = parts[1].toInt()
-                onLeaveButton(gid, callbackQuery)
+                onLeaveButton(group, callbackQuery)
+            }
+            "tell" -> {
+                onTellButton(group, callbackQuery)
             }
             else -> null
         }
@@ -73,37 +85,37 @@ class SantaService(private val dbService: DbService) {
                 inlineMessageId = inlineMessageId,
                 text = makeGroupMessage(group),
                 parseMode = ParseMode.Markdown,
-                replyMarkup = InlineKeyboardMarkup(makeActiveGroupButtons(group))
+                replyMarkup = InlineKeyboardMarkup(makeGroupButtons(group))
             )
             telegramService.sendRequest(editRequest)
         }
     }
 
-    private fun onStartCommand(id: Int, state: Int?): SendMessageRequest? {
-        if (state != null) return onRepeatedStart(id, state)
+    private fun onStartCommand(id: Int, state: ChatState): SendMessageRequest? {
+        if (state != ChatState.Idle) return onBadState(id, state)
 
         dbService.saveStartChat(id)
 
         return SendMessageRequest(
             chatId = id,
-            text = "Привет! Создаём новую группу Тайного Санты. После того как в неё добавятся все желающие, закройте " +
-                    "приём в группу. После этого все получат имя и логин того, кому должны придумать подарок. А как эта " +
+            text = "Привет! Создаём новую группу Тайного Санты. После того как в неё добавятся все желающие, закрой " +
+                    "приём в группу. После этого все получат логин того, кому должны придумать подарок. А как эта " +
                     "группа будет называться?"
         )
     }
 
-    private fun onCloseCommand(chatId: Int, state: Int?, login: String): SendMessageRequest? {
-        if (state != null && state != 1) return null
+    private fun onCloseCommand(chatId: Int, state: ChatState, login: String): SendMessageRequest? {
+        if (state != ChatState.Idle) return onBadState(chatId, state)
 
-        dbService.startCloseChat(chatId)
+        dbService.setChatState(chatId, ChatState.CloseGetName)
 
-        val buttons = dbService.getAdminGroups(login)
+        val buttons = dbService.getGroupsForClose(login)
             .map { listOf(KeyboardButton(it.name)) }
             .plusElement(listOf(KeyboardButton("Отмена")))
 
         return SendMessageRequest(
             chatId,
-            text = "Закрываем приём в группу? Хорошо. Выберите нужную группу.",
+            text = "Закрываем приём в группу? Хорошо. Выбери нужную группу.",
             replyMarkup = ReplyKeyboardMarkup(
                 keyboard = buttons,
                 resizeKeyboard = true,
@@ -112,54 +124,120 @@ class SantaService(private val dbService: DbService) {
         )
     }
 
-    private fun onRepeatedStart(id: Int, state: Int): SendMessageRequest? {
+    private fun onBadState(id: Int, state: ChatState): SendMessageRequest? {
         return null
     }
 
-    private fun onFreeFormMessage(message: Message, state: Int?): SendMessageRequest? {
+    private fun onFreeFormMessage(message: Message, state: ChatState): SendMessageRequest? {
         val chatId = message.chat.id
-        if (state == 0) {
-            // Group creation started
-            val name = message.text ?: "Unnamed"
-            dbService.createGroupInChat(chatId, name, message.from!!)
+        when (state) {
+            ChatState.CreateGetName -> {
+                // Group creation started
+                return onCreateNameGot(message, chatId)
+            }
+            ChatState.CloseGetName -> {
+                return onCloseNameGot(chatId, message)
+            }
+            else -> // No started dialog
+                return SendMessageRequest(
+                    chatId = chatId,
+                    text = """Привет. Команды такие:
+                        |/start - Создать новую группу Тайного Санты
+                        |/close - Закрыть приём в группу
+                    """.trimMargin()
+                )
+        }
+    }
 
-            return SendMessageRequest(
-                chatId = chatId,
-                text = "Отлично! Группу $name создали и тебя туда добавили.",
-                replyMarkup = InlineKeyboardMarkup(
+    private fun onCloseNameGot(
+        chatId: Int,
+        message: Message
+    ): SendMessageRequest {
+        dbService.setChatState(chatId, ChatState.Idle)
+
+        val name = message.text!!
+        if (name == "Отмена") {
+            return SendMessageRequest(chatId, "Ну ок")
+        }
+
+        val group = dbService.findAdminGroupByName(message.from!!.username!!, name)
+            ?: return SendMessageRequest(chatId, "Нет такой группы!")
+
+        val gid = group.id
+        dbService.closeGroup(gid)
+        val memberIds = dbService.getGroupMembers(gid)
+        val shuffled = shuffle(memberIds)
+        dbService.saveShuffled(gid, shuffled)
+
+        return SendMessageRequest(
+            chatId = chatId,
+            text = "Группа закрыта и санты для всех назначены. Чтобы все об этом узнали, закинь опять группу в чат.",
+            replyMarkup = InlineKeyboardMarkup(
+                listOf(
                     listOf(
-                        listOf(
-                            InlineKeyboardButton(
-                                text = "Закинуть в чат",
-                                switchInlineQuery = ""
-                            )
+                        InlineKeyboardButton(
+                            text = "Закинуть в чат",
+                            switchInlineQuery = ""
                         )
                     )
                 )
             )
-        } else if (state == null || state == 1) {
-            // No started dialog
-            return SendMessageRequest(
-                chatId = chatId,
-                text = """Привет. Команды такие:
-                    |/start - Создать новую группу Тайного Санты
-                    |/close - Закрыть приём в группу
-                """.trimMargin()
+        )
+    }
+
+    private fun onCreateNameGot(
+        message: Message,
+        chatId: Int
+    ): SendMessageRequest {
+        val name = message.text ?: "Unnamed"
+        dbService.createGroupInChat(chatId, name, message.from!!)
+
+        return SendMessageRequest(
+            chatId = chatId,
+            text = "Отлично! Группу $name создали и тебя туда добавили.",
+            replyMarkup = InlineKeyboardMarkup(
+                listOf(
+                    listOf(
+                        InlineKeyboardButton(
+                            text = "Закинуть в чат",
+                            switchInlineQuery = ""
+                        )
+                    )
+                )
             )
-        }
-        return null
+        )
     }
 
     private fun makeGroupMessage(group: Group): String {
+        val stateMessage = if (group.closed)
+            "Приём в группу закрыт. Если ты в ней, можешь узнать, кому дарить."
+        else
+            """После того как в группу запишутся все желающие, @${group.authorLogin} её закроет. После этого все смогут узнать, кто
+            кому дарит подарок, однако, состав изменить уже будет нельзя."""
+
         return """
             *Группа Тайного Санты "${group.name}"*
             Создал @${group.authorLogin}
 
             ${group.membersNum} участников
 
-            После того как в группу запишутся все желающие, @${group.authorLogin} её закроет. После этого все смогут узнать, кто
-            кому дарит подарок, однако, состав изменить уже будет нельзя.
+            $stateMessage
         """.trimIndent()
+    }
+
+    private fun makeGroupButtons(it: Group): List<List<InlineKeyboardButton>> {
+        return if (it.closed) {
+            listOf(
+                listOf(
+                    InlineKeyboardButton(text = "Узнать, кому дарить", callbackData = "tell:${it.id}")
+                )
+            )
+        } else listOf(
+            listOf(
+                InlineKeyboardButton(text = "Присоединиться", callbackData = "join:${it.id}"),
+                InlineKeyboardButton(text = "Выйти", callbackData = "leave:${it.id}")
+            )
+        )
     }
 
     private fun <T> shuffle(ids: List<T>): Map<T, T> {
@@ -184,14 +262,19 @@ class SantaService(private val dbService: DbService) {
         return map
     }
 
-    private fun onJoinButton(
-        gid: Int,
-        callbackQuery: CallbackQuery
-    ): AnswerCallbackQueryRequest {
-        val added = dbService.addToGroup(gid, callbackQuery.from.id)
+    private fun onJoinButton(group: Group, callbackQuery: CallbackQuery): AnswerCallbackQueryRequest {
+        if (group.closed) {
+            return AnswerCallbackQueryRequest(
+                callbackQueryId = callbackQuery.id,
+                text = "Приём в группу уже закрыт, сорри"
+            )
+        }
+
+        val added = dbService.addToGroup(group.id, callbackQuery.from.username!!)
 
         return if (added) {
-            updateGroupMessage(gid, callbackQuery.inlineMessageId)
+            @Suppress("DeferredResultUnused")
+            updateGroupMessage(group.id, callbackQuery.inlineMessageId)
 
             AnswerCallbackQueryRequest(
                 callbackQueryId = callbackQuery.id,
@@ -200,19 +283,24 @@ class SantaService(private val dbService: DbService) {
         } else {
             AnswerCallbackQueryRequest(
                 callbackQueryId = callbackQuery.id,
-                text = "Вы и так уже в группе"
+                text = "Ты и так уже в группе"
             )
         }
     }
 
-    private fun onLeaveButton(
-        gid: Int,
-        callbackQuery: CallbackQuery
-    ): AnswerCallbackQueryRequest {
-        val removed = dbService.removeFromGroup(gid, callbackQuery.from.id)
+    private fun onLeaveButton(group: Group, callbackQuery: CallbackQuery): AnswerCallbackQueryRequest {
+        if (group.closed) {
+            return AnswerCallbackQueryRequest(
+                callbackQueryId = callbackQuery.id,
+                text = "Приём в группу уже закрыт, сорри. А потому и выход из неё тоже."
+            )
+        }
+
+        val removed = dbService.removeFromGroup(group.id, callbackQuery.from.username!!)
 
         return if (removed) {
-            updateGroupMessage(gid, callbackQuery.inlineMessageId)
+            @Suppress("DeferredResultUnused")
+            updateGroupMessage(group.id, callbackQuery.inlineMessageId)
 
             AnswerCallbackQueryRequest(
                 callbackQueryId = callbackQuery.id,
@@ -221,8 +309,28 @@ class SantaService(private val dbService: DbService) {
         } else {
             AnswerCallbackQueryRequest(
                 callbackQueryId = callbackQuery.id,
-                text = "Вы и так не в группе"
+                text = "Ты и так не в группе"
             )
         }
+    }
+
+    private fun onTellButton(group: Group, callbackQuery: CallbackQuery): Request? {
+        if (!group.closed) {
+            return AnswerCallbackQueryRequest(
+                callbackQueryId = callbackQuery.id,
+                text = "Не знаю, как ты нашёл эту кнопку, но группа ещё открыта"
+            )
+        }
+
+        val target = dbService.findTarget(group.id, callbackQuery.from.username!!) ?: return AnswerCallbackQueryRequest(
+            callbackQueryId = callbackQuery.id,
+            text = "По каким-то причинам не могу найти инфу. :("
+        )
+
+        return AnswerCallbackQueryRequest(
+            callbackQueryId = callbackQuery.id,
+            text = "Ты даришь подарок @$target",
+            showAlert = true
+        )
     }
 }
