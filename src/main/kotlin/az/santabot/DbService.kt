@@ -29,14 +29,6 @@ class DbService {
         }
     }
 
-    fun saveStartChat(id: Int) {
-        withConnection {
-            val statementIns = prepareStatement("INSERT INTO chats(id, started) VALUES (?, NOW()) ")
-            statementIns.setInt(1, id)
-            statementIns.executeUpdate()
-        }
-    }
-
     fun findChatState(id: Int): SantaService.ChatState {
         return withConnection {
             val statement = prepareStatement("SELECT state FROM chats WHERE id = ?")

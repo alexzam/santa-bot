@@ -94,7 +94,7 @@ class SantaService(private val dbService: DbService) {
     private fun onStartCommand(id: Int, state: ChatState): SendMessageRequest? {
         if (state != ChatState.Idle) return onBadState(id, state)
 
-        dbService.saveStartChat(id)
+        dbService.setChatState(id, ChatState.CreateGetName)
 
         return SendMessageRequest(
             chatId = id,
