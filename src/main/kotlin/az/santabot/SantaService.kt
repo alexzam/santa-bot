@@ -1,6 +1,7 @@
 package az.santabot
 
 import az.santabot.model.*
+import az.santabot.util.shuffle
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 
@@ -219,7 +220,7 @@ class SantaService(private val dbService: DbService) {
             *Группа Тайного Санты "${group.name}"*
             Создал @${group.authorLogin}
 
-            ${group.membersNum} участников
+            ${group.membersNum} ${inflect(group.membersNum, "участник", "участника", "участников")}
 
             $stateMessage
         """.trimIndent()
@@ -238,28 +239,6 @@ class SantaService(private val dbService: DbService) {
                 InlineKeyboardButton(text = "Выйти", callbackData = "leave:${it.id}")
             )
         )
-    }
-
-    private fun <T> shuffle(ids: List<T>): Map<T, T> {
-        if (ids.size < 2) {
-            return ids.zip(ids).toMap()
-        }
-
-        val map = ids.zip(ids.shuffled()).toMap().toMutableMap()
-
-        val toReshuffle = map.filter { entry -> entry.key == entry.value }
-        toReshuffle.keys
-            .forEach {
-                var key: T
-                do {
-                    key = map.keys.random()
-                } while (key == it)
-
-                map[it] = map[key]!!
-                map[key] = it
-            }
-
-        return map
     }
 
     private fun onJoinButton(group: Group, callbackQuery: CallbackQuery): AnswerCallbackQueryRequest {
@@ -332,5 +311,15 @@ class SantaService(private val dbService: DbService) {
             text = "Ты даришь подарок @$target",
             showAlert = true
         )
+    }
+
+    private fun inflect(num: Int, one: String, two: String, many: String): String {
+        val numEff = num % 100
+        return when {
+            numEff in 11..19 -> many
+            numEff % 10 == 1 -> one
+            numEff % 10 in 2..4 -> two
+            else -> many
+        }
     }
 }
