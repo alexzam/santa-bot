@@ -22,7 +22,7 @@ class SantaService(private val dbService: DbService) {
      * Mentioned suggest
      */
     fun processInlineRequest(inlineQuery: InlineQuery): InlineQueryRequest {
-        val groups = dbService.getGroups(inlineQuery.from.username!!)
+        val groups = dbService.getGroups(inlineQuery.from)
         return InlineQueryRequest(
             inlineQueryId = inlineQuery.id,
             personal = true,
@@ -47,11 +47,10 @@ class SantaService(private val dbService: DbService) {
      */
     fun processMessage(message: Message): SendMessageRequest? {
         val state = dbService.findChatState(message.chat.id)
-        val login = message.from!!.username!!
 
         return when (message.text?.trim()) {
             "/start" -> onStartCommand(message.chat.id, state)
-            "/close" -> onCloseCommand(message.chat.id, state, login)
+            "/close" -> onCloseCommand(message.chat.id, state, message.from!!)
             else -> onFreeFormMessage(message, state)
         }
     }
@@ -105,12 +104,12 @@ class SantaService(private val dbService: DbService) {
         )
     }
 
-    private fun onCloseCommand(chatId: Int, state: ChatState, login: String): SendMessageRequest? {
+    private fun onCloseCommand(chatId: Int, state: ChatState, user: User): SendMessageRequest? {
         if (state != ChatState.Idle) return onBadState(chatId, state)
 
         dbService.setChatState(chatId, ChatState.CloseGetName)
 
-        val buttons = dbService.getGroupsForClose(login)
+        val buttons = dbService.getGroupsForClose(user)
             .map { listOf(KeyboardButton(it.name)) }
             .plusElement(listOf(KeyboardButton("Отмена")))
 
@@ -161,7 +160,7 @@ class SantaService(private val dbService: DbService) {
             return SendMessageRequest(chatId, "Ну ок")
         }
 
-        val group = dbService.findAdminGroupByName(message.from!!.username!!, name)
+        val group = dbService.findAdminGroupByName(message.from!!, name)
             ?: return SendMessageRequest(chatId, "Нет такой группы!")
 
         val gid = group.id
@@ -249,7 +248,7 @@ class SantaService(private val dbService: DbService) {
             )
         }
 
-        val added = dbService.addToGroup(group.id, callbackQuery.from.username!!)
+        val added = dbService.addToGroup(group.id, callbackQuery.from)
 
         return if (added) {
             @Suppress("DeferredResultUnused")
@@ -275,7 +274,7 @@ class SantaService(private val dbService: DbService) {
             )
         }
 
-        val removed = dbService.removeFromGroup(group.id, callbackQuery.from.username!!)
+        val removed = dbService.removeFromGroup(group.id, callbackQuery.from)
 
         return if (removed) {
             @Suppress("DeferredResultUnused")
@@ -301,14 +300,14 @@ class SantaService(private val dbService: DbService) {
             )
         }
 
-        val target = dbService.findTarget(group.id, callbackQuery.from.username!!) ?: return AnswerCallbackQueryRequest(
+        val target = dbService.findTarget(group.id, callbackQuery.from) ?: return AnswerCallbackQueryRequest(
             callbackQueryId = callbackQuery.id,
             text = "По каким-то причинам не могу найти инфу. :("
         )
 
         return AnswerCallbackQueryRequest(
             callbackQueryId = callbackQuery.id,
-            text = "Ты даришь подарок @$target",
+            text = "Ты даришь подарок $target",
             showAlert = true
         )
     }

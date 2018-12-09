@@ -12,11 +12,16 @@ class DbService {
 
     fun getUrlInfo(): String = "JDU:${System.getenv("JDBC_DATABASE_URL")}, DU:${System.getenv("DATABASE_URL")}"
 
-    fun getGroups(login: String): List<Group> {
+    fun getGroups(user: User): List<Group> {
+        var query = "SELECT g.* FROM groups AS g JOIN user_groups AS ug ON ug.gid=g.id WHERE ug.uid = ?"
+        val username = user.username
+        if (username != null) query += " OR ug.uid = ?"
+
         return withConnection {
-            val statement =
-                prepareStatement("SELECT g.* FROM groups AS g JOIN user_groups AS ug ON ug.gid=g.id WHERE ug.uid=?")
-            statement.setString(1, login)
+            val statement = prepareStatement(query)
+            statement.setString(1, user.id.toString())
+            if (username != null) statement.setString(2, username)
+
             val results = statement.executeQuery()
 
             val ret = mutableListOf<Group>()
@@ -57,7 +62,7 @@ class DbService {
             val groupStatement =
                 prepareStatement("INSERT INTO groups(name, author) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)
             groupStatement.setString(1, name)
-            groupStatement.setString(2, user.username!!)
+            groupStatement.setString(2, user.id.toString())
             groupStatement.executeUpdate()
             val keys = groupStatement.generatedKeys
             keys.next()
@@ -65,19 +70,21 @@ class DbService {
 
             val memberStatement = prepareStatement("INSERT INTO user_groups(gid, uid) VALUES (?, ?)")
             memberStatement.setInt(1, gid)
-            memberStatement.setString(2, user.username)
+            memberStatement.setString(2, user.id.toString())
             memberStatement.executeUpdate()
 
             gid
         }
     }
 
-    fun addToGroup(gid: Int, login: String): Boolean {
+    fun addToGroup(gid: Int, user: User): Boolean {
         return withConnection {
             try {
-                val st = prepareStatement("INSERT INTO user_groups(gid, uid) VALUES (?, ?)")
+                val st = prepareStatement("INSERT INTO user_groups(gid, uid, u_name, u_username) VALUES (?, ?, ?, ?)")
                 st.setInt(1, gid)
-                st.setString(2, login)
+                st.setString(2, user.id.toString())
+                st.setString(3, (user.firstName + " " + (user.lastName ?: "")).trim())
+                st.setString(4, user.username)
                 st.executeUpdate()
 
                 val numSt = prepareStatement("UPDATE groups SET memberNum = memberNum + 1 WHERE id = ?")
@@ -90,12 +97,13 @@ class DbService {
         }
     }
 
-    fun removeFromGroup(gid: Int, login: String): Boolean {
+    fun removeFromGroup(gid: Int, user: User): Boolean {
         return withConnection {
             try {
-                val st = prepareStatement("DELETE FROM user_groups WHERE gid = ? AND uid = ?")
+                val st = prepareStatement("DELETE FROM user_groups WHERE gid = ? AND (uid = ? OR uid = ?)")
                 st.setInt(1, gid)
-                st.setString(2, login)
+                st.setString(2, user.id.toString())
+                st.setString(3, user.username)
                 if (st.executeUpdate() < 1) return@withConnection false
 
                 val numSt = prepareStatement("UPDATE groups SET memberNum = memberNum - 1 WHERE id = ?")
@@ -129,9 +137,9 @@ class DbService {
         st.executeUpdate()
     }
 
-    fun getGroupsForClose(login: String): List<Group> = withConnection {
+    fun getGroupsForClose(user: User): List<Group> = withConnection {
         val st = prepareStatement("SELECT * FROM groups WHERE author = ? AND closed = false")
-        st.setString(1, login)
+        st.setString(1, user.id.toString())
         val results = st.executeQuery()
 
         val ret = mutableListOf<Group>()
@@ -143,9 +151,9 @@ class DbService {
         ret
     }
 
-    fun findAdminGroupByName(login: String, name: String): Group? = withConnection {
+    fun findAdminGroupByName(user: User, name: String): Group? = withConnection {
         val st = prepareStatement("SELECT * FROM groups WHERE author = ? AND name = ? AND closed = false")
-        st.setString(1, login)
+        st.setString(1, user.id.toString())
         st.setString(2, name)
         val results = st.executeQuery()
 
@@ -177,22 +185,36 @@ class DbService {
 
     fun saveShuffled(gid: Int, shuffled: Map<String, String>) = withConnection {
         shuffled.forEach { uid, target ->
-            val st = prepareStatement("UPDATE user_groups SET target = ? WHERE gid = ? AND uid = ?")
+            val getSt = prepareStatement("SELECT u_name, u_username FROM user_groups WHERE gid = ? AND uid = ?")
+            getSt.setInt(1, gid)
+            getSt.setString(2, uid)
+            val result = getSt.executeQuery()
+            if (!result.next()) throw RuntimeException("User not found after shuffle")
+
+            val name = result.getString(1)
+            val username = result.getString(2)
+
+            val st =
+                prepareStatement("UPDATE user_groups SET target = ?, target_name = ?, target_username = ? WHERE gid = ? AND uid = ?")
             st.setString(1, target)
-            st.setInt(2, gid)
-            st.setString(3, uid)
+            st.setString(2, name)
+            st.setString(3, username)
+            st.setInt(4, gid)
+            st.setString(5, uid)
 
             st.executeUpdate()
         }
     }
 
-    fun findTarget(gid: Int, login: String): String? = withConnection {
-        val st = prepareStatement("SELECT target FROM user_groups WHERE gid = ? AND uid = ?")
+    fun findTarget(gid: Int, user: User): DbUser? = withConnection {
+        val st =
+            prepareStatement("SELECT target, target_name, target_username FROM user_groups WHERE gid = ? AND (uid = ? OR uid = ?)")
         st.setInt(1, gid)
-        st.setString(2, login)
+        st.setString(2, user.id.toString())
+        st.setString(3, user.username)
         val result = st.executeQuery()
 
-        if (result.next()) result.getString(1) else null
+        if (result.next()) DbUser(result) else null
     }
 
     private fun <T> withConnection(action: Connection.() -> T): T {
@@ -208,4 +230,11 @@ class Group(results: ResultSet) {
     val authorLogin = results.getString("author")
     val membersNum = results.getInt("memberNum")
     val closed: Boolean = results.getBoolean("closed")
+}
+
+class DbUser(results: ResultSet) {
+    private val name: String? = results.getString("target_name")
+    private val username: String = results.getString("target_username")
+
+    override fun toString(): String = if (name != null) "$name (@$username)" else "@$username"
 }
