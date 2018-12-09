@@ -194,7 +194,7 @@ class DbService {
         shuffled.forEach { uid, target ->
             val getSt = prepareStatement("SELECT u_name, u_username FROM user_groups WHERE gid = ? AND uid = ?")
             getSt.setInt(1, gid)
-            getSt.setString(2, uid)
+            getSt.setString(2, target)
             val result = getSt.executeQuery()
             if (!result.next()) throw RuntimeException("User not found after shuffle")
 
