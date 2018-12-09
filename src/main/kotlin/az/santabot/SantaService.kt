@@ -30,7 +30,7 @@ class SantaService(private val dbService: DbService) {
                 InlineQueryResultArticle(
                     id = it.id.toString(),
                     title = it.name,
-                    description = "Создал: ${it.authorLogin}, в группе ${it.membersNum}",
+                    description = "Создал: ${it.authorName}, в группе ${it.membersNum}",
                     inputMessageContent = InputTextMessageContent(
                         makeGroupMessage(it),
                         parseMode = ParseMode.Markdown
@@ -212,12 +212,12 @@ class SantaService(private val dbService: DbService) {
         val stateMessage = if (group.closed)
             "Приём в группу закрыт. Если ты в ней, можешь узнать, кому дарить."
         else
-            """После того как в группу запишутся все желающие, @${group.authorLogin} её закроет. После этого все смогут узнать, кто
+            """После того как в группу запишутся все желающие, @${group.authorName} её закроет. После этого все смогут узнать, кто
             кому дарит подарок, однако, состав изменить уже будет нельзя."""
 
         return """
             *Группа Тайного Санты "${group.name}"*
-            Создал @${group.authorLogin}
+            Создал @${group.authorName}
 
             ${group.membersNum} ${inflect(group.membersNum, "участник", "участника", "участников")}
 

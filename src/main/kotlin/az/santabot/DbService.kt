@@ -60,17 +60,24 @@ class DbService {
             chatStatement.executeUpdate()
 
             val groupStatement =
-                prepareStatement("INSERT INTO groups(name, author) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)
+                prepareStatement(
+                    "INSERT INTO groups(name, author, author_name) VALUES (?, ?, ?)",
+                    Statement.RETURN_GENERATED_KEYS
+                )
             groupStatement.setString(1, name)
             groupStatement.setString(2, user.id.toString())
+            groupStatement.setString(3, user.display)
             groupStatement.executeUpdate()
             val keys = groupStatement.generatedKeys
             keys.next()
             val gid = keys.getInt(1)
 
-            val memberStatement = prepareStatement("INSERT INTO user_groups(gid, uid) VALUES (?, ?)")
+            val memberStatement =
+                prepareStatement("INSERT INTO user_groups(gid, uid, u_username, u_name) VALUES (?, ?, ?, ?)")
             memberStatement.setInt(1, gid)
             memberStatement.setString(2, user.id.toString())
+            memberStatement.setString(3, user.username)
+            memberStatement.setString(4, "${user.firstName} ${user.lastName}".trim())
             memberStatement.executeUpdate()
 
             gid
@@ -226,8 +233,8 @@ class DbService {
 
 class Group(results: ResultSet) {
     val id = results.getInt("id")
-    val name = results.getString("name")
-    val authorLogin = results.getString("author")
+    val name = results.getString("name")!!
+    val authorName = results.getString("author_name")!!
     val membersNum = results.getInt("memberNum")
     val closed: Boolean = results.getBoolean("closed")
 }

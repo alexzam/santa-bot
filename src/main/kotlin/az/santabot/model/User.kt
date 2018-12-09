@@ -11,4 +11,12 @@ class User
     @JsonProperty("first_name") val firstName: String,
     @JsonProperty("last_name") val lastName: String?,
     @JsonProperty("username") val username: String?
-)
+) {
+    val display: String
+        get() {
+            val ret = StringBuilder(firstName)
+            if (lastName != null) ret.append(" $lastName")
+            if (username != null) ret.append(" ($username)")
+            return ret.toString()
+        }
+}
