@@ -77,7 +77,7 @@ class DbService {
             memberStatement.setInt(1, gid)
             memberStatement.setString(2, user.id.toString())
             memberStatement.setString(3, user.username)
-            memberStatement.setString(4, "${user.firstName} ${user.lastName}".trim())
+            memberStatement.setString(4, "${user.firstName} ${user.lastName ?: ""}".trim())
             memberStatement.executeUpdate()
 
             gid

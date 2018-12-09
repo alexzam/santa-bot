@@ -16,7 +16,7 @@ class User
         get() {
             val ret = StringBuilder(firstName)
             if (lastName != null) ret.append(" $lastName")
-            if (username != null) ret.append(" ($username)")
+            if (username != null) ret.append(" (@$username)")
             return ret.toString()
         }
 }
