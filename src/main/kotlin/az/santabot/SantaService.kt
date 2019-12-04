@@ -14,6 +14,8 @@ class SantaService(private val dbService: DbService) {
         companion object {
             fun find(id: Int): ChatState? = values().find { it.id == id }
         }
+
+        override fun toString(): String = id.toString()
     }
 
     lateinit var telegramService: TelegramService
@@ -125,7 +127,7 @@ class SantaService(private val dbService: DbService) {
     }
 
     private fun onBadState(id: Int, state: ChatState): SendMessageRequest? {
-        return null
+        return SendMessageRequest(id, "Что-то пошло не так. :(  ($id:$state)")
     }
 
     private fun onFreeFormMessage(message: Message, state: ChatState): SendMessageRequest? {
