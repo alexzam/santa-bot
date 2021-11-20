@@ -2,26 +2,23 @@ package az.santabot
 
 import az.santabot.model.Update
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import io.ktor.application.call
-import io.ktor.application.install
-import io.ktor.features.ContentNegotiation
-import io.ktor.http.ContentType
-import io.ktor.jackson.jackson
-import io.ktor.request.receiveText
-import io.ktor.response.respond
-import io.ktor.response.respondText
-import io.ktor.routing.get
-import io.ktor.routing.post
-import io.ktor.routing.routing
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import io.ktor.application.*
+import io.ktor.features.*
+import io.ktor.http.*
+import io.ktor.jackson.*
+import io.ktor.request.*
+import io.ktor.response.*
+import io.ktor.routing.*
+import io.ktor.server.engine.*
+import io.ktor.server.netty.*
+import kotlinx.coroutines.runBlocking
 import kotlin.random.Random
 import kotlin.random.nextUBytes
 
 @ExperimentalUnsignedTypes
 fun main(args: Array<String>) {
+
+    val immediateResponseMode = false
 
     // DI for tiny app
     val incomingToken = Random.nextUBytes(10).map { it.toString(16) }.fold("") { acc, s -> acc + s }
@@ -29,8 +26,9 @@ fun main(args: Array<String>) {
     val santaService = SantaService(dbService)
     val telegramService = TelegramService(incomingToken, santaService)
     santaService.telegramService = telegramService
+    val jacksonObjectMapper = jacksonObjectMapper()
 
-    GlobalScope.launch { println("Telegram endpoint setup ($incomingToken): " + telegramService.setupEndpoint()) }
+    runBlocking { println("Telegram endpoint setup ($incomingToken): " + telegramService.setupEndpoint()) }
 
     embeddedServer(Netty, System.getenv("PORT").toIntOrNull() ?: 80) {
         install(ContentNegotiation) {
@@ -45,10 +43,17 @@ fun main(args: Array<String>) {
                 try {
                     val receiveText = call.receiveText()
                     println("IN: $receiveText")
-                    update = jacksonObjectMapper().readValue(receiveText, Update::class.java)
-                    val response = telegramService.onReceiveUpdate(update) ?: ""
-                    println("OUT: " + jacksonObjectMapper().writeValueAsString(response))
-                    call.respond(response)
+                    update = jacksonObjectMapper.readValue(receiveText, Update::class.java)
+                    val response = telegramService.onReceiveUpdate(update)
+                    val responseStr = jacksonObjectMapper.writeValueAsString(response)
+
+                    if (immediateResponseMode) {
+                        println("OUT: $responseStr")
+                        call.respond(response ?: "")
+                    } else {
+                        call.respond(HttpStatusCode.OK, "")
+                        response?.also { telegramService.sendRequest(it) }
+                    }
                 } catch (e: Exception) {
                     println(e)
                     e.printStackTrace()
