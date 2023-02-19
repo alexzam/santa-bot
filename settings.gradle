@@ -3,4 +3,5 @@ include 'core'
 include 'app'
 include 'storage'
 include 'util'
+include 'storage-pg'
 

@@ -2,7 +2,6 @@ package az.santabot
 
 import az.santabot.model.*
 import az.santabot.storage.DbService
-import az.santabot.storage.Group
 import az.santabot.util.shuffle
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async

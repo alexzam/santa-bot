@@ -1,6 +1,8 @@
 package az.santabot.storage
 
 import az.santabot.model.ChatState
+import az.santabot.model.DbUser
+import az.santabot.model.Group
 import az.santabot.model.User
 
 interface DbService {

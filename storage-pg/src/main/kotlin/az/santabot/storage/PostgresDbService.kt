@@ -1,10 +1,11 @@
 package az.santabot.storage
 
 import az.santabot.model.ChatState
+import az.santabot.model.DbUser
+import az.santabot.model.Group
 import az.santabot.model.User
 import java.sql.Connection
 import java.sql.DriverManager
-import java.sql.ResultSet
 import java.sql.Statement
 
 
@@ -233,20 +234,3 @@ class PostgresDbService : DbService {
     }
 }
 
-class Group(results: ResultSet) {
-    val id = results.getInt("id")
-    val name = results.getString("name")!!
-    val authorName = results.getString("author_name")!!
-    val membersNum = results.getInt("memberNum")
-    val closed: Boolean = results.getBoolean("closed")
-}
-
-class DbUser(results: ResultSet) {
-    private val name: String? = results.getString("target_name")
-    private val username: String? = results.getString("target_username")
-
-    override fun toString(): String =
-        if (name != null && username != null) "$name (@$username)"
-        else if (username != null) "@$username"
-        else name ?: "Fully anonymous user"
-}
