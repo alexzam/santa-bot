@@ -1,5 +1,6 @@
-package az.santabot
+package az.santabot.storage
 
+import az.santabot.model.ChatState
 import az.santabot.model.User
 import java.sql.Connection
 import java.sql.DriverManager
@@ -7,7 +8,7 @@ import java.sql.ResultSet
 import java.sql.Statement
 
 
-@Suppress("SqlResolve")
+@Suppress("SqlResolve", "SqlNoDataSourceInspection")
 class PostgresDbService : DbService {
     private val dbUrl = System.getenv("JDBC_DATABASE_URL")
 
@@ -35,7 +36,7 @@ class PostgresDbService : DbService {
         }
     }
 
-    override fun findChatState(id: Int): SantaService.ChatState {
+    override fun findChatState(id: Int): ChatState {
         return withConnection {
             val statement = prepareStatement("SELECT state FROM chats WHERE id = ?")
             statement.setInt(1, id)
@@ -43,12 +44,12 @@ class PostgresDbService : DbService {
             if (!resultSet.next()) {
                 val stCreate = prepareStatement("INSERT INTO chats(id, state) VALUES (?, ?)")
                 stCreate.setInt(1, id)
-                stCreate.setInt(2, SantaService.ChatState.Idle.id)
+                stCreate.setInt(2, ChatState.Idle.id)
                 stCreate.executeUpdate()
 
-                SantaService.ChatState.Idle
+                ChatState.Idle
             } else {
-                SantaService.ChatState.find(resultSet.getInt(1))!!
+                ChatState.find(resultSet.getInt(1))!!
             }
         }
     }
@@ -56,7 +57,7 @@ class PostgresDbService : DbService {
     override fun createGroupInChat(chatId: Int, name: String, user: User): Int {
         return withConnection {
             val chatStatement = prepareStatement("UPDATE chats SET state=? WHERE id=?")
-            chatStatement.setInt(1, SantaService.ChatState.Idle.id)
+            chatStatement.setInt(1, ChatState.Idle.id)
             chatStatement.setInt(2, chatId)
             chatStatement.executeUpdate()
 
@@ -134,7 +135,7 @@ class PostgresDbService : DbService {
         }
     }
 
-    override fun setChatState(chatId: Int, state: SantaService.ChatState): Int = withConnection {
+    override fun setChatState(chatId: Int, state: ChatState): Int = withConnection {
         val st = prepareStatement(
             "INSERT INTO chats (id, started, state) VALUES (?, now(), ?) " +
                     "ON CONFLICT(id) DO UPDATE SET started = now(), state = ?"
@@ -192,7 +193,7 @@ class PostgresDbService : DbService {
     }
 
     override fun saveShuffled(gid: Int, shuffled: Map<String, String>) = withConnection {
-        shuffled.forEach { uid, target ->
+        shuffled.forEach { (uid, target) ->
             val getSt = prepareStatement("SELECT u_name, u_username FROM user_groups WHERE gid = ? AND uid = ?")
             getSt.setInt(1, gid)
             getSt.setString(2, target)

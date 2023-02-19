@@ -1,9 +1,9 @@
 package az.santabot.app
 
-import az.santabot.PostgresDbService
 import az.santabot.SantaService
 import az.santabot.TelegramService
 import az.santabot.model.Update
+import az.santabot.storage.PostgresDbService
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*

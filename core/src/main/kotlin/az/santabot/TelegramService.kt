@@ -23,18 +23,10 @@ class TelegramService(
         return sendRequest(req)
     }
 
-    fun onReceiveUpdate(update: Update): Request? {
-        if (update.inlineQuery != null) {
-            return santaService.processInlineRequest(update.inlineQuery)
-        }
-        if (update.message != null) {
-            return santaService.processMessage(update.message)
-        }
-        if (update.callbackQuery != null) {
-            return santaService.processCallbackQuery(update.callbackQuery)
-        }
-        return null
-    }
+    fun onReceiveUpdate(update: Update): Request? =
+        update.inlineQuery?.let { santaService.processInlineRequest(it) }
+            ?: update.message?.let { santaService.processMessage(it) }
+            ?: update.callbackQuery?.let { santaService.processCallbackQuery(it) }
 
     suspend fun sendRequest(request: Request): String {
         val req = methodUrl(request.method).httpPost()
