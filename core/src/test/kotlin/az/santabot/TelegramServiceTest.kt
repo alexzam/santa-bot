@@ -1,15 +1,15 @@
 package az.santabot
 
 import az.santabot.util.shuffle
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import kotlin.test.assertEquals
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TelegramServiceTest {
 
     @Test
-    fun testStartInline() {
+    fun testShuffle() {
         val shuffled0 = shuffle(listOf(1))
         assertEquals(1, shuffled0[1])
 
