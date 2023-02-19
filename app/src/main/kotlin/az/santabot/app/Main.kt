@@ -1,5 +1,8 @@
-package az.santabot
+package az.santabot.app
 
+import az.santabot.PostgresDbService
+import az.santabot.SantaService
+import az.santabot.TelegramService
 import az.santabot.model.Update
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
@@ -15,7 +18,7 @@ import kotlin.random.Random
 import kotlin.random.nextUBytes
 
 fun main() {
-    embeddedServer(Netty, System.getenv("PORT").toIntOrNull() ?: 80, module = Application::santaBotModule)
+    embeddedServer(Netty, System.getenv("PORT")?.toIntOrNull() ?: 80, module = Application::santaBotModule)
         .start(wait = true)
 }
 
@@ -25,7 +28,7 @@ fun Application.santaBotModule() {
     val incomingToken = Random.nextUBytes(10).map { it.toString(16) }.fold("") { acc, s -> acc + s }
     val immediateResponseMode = false
 
-    val dbService = DbService()
+    val dbService = PostgresDbService()
 
     val santaService = SantaService(dbService)
     val telegramService = TelegramService(incomingToken, santaService)

@@ -7,12 +7,13 @@ import java.sql.ResultSet
 import java.sql.Statement
 
 
-class DbService {
+@Suppress("SqlResolve")
+class PostgresDbService : DbService {
     private val dbUrl = System.getenv("JDBC_DATABASE_URL")
 
-    fun getUrlInfo(): String = "JDU:${System.getenv("JDBC_DATABASE_URL")}, DU:${System.getenv("DATABASE_URL")}"
+    override fun getUrlInfo(): String = "JDU:${System.getenv("JDBC_DATABASE_URL")}, DU:${System.getenv("DATABASE_URL")}"
 
-    fun getGroups(user: User): List<Group> {
+    override fun getGroups(user: User): List<Group> {
         var query = "SELECT g.* FROM groups AS g JOIN user_groups AS ug ON ug.gid=g.id WHERE ug.uid = ?"
         val username = user.username
         if (username != null) query += " OR ug.uid = ?"
@@ -34,7 +35,7 @@ class DbService {
         }
     }
 
-    fun findChatState(id: Int): SantaService.ChatState {
+    override fun findChatState(id: Int): SantaService.ChatState {
         return withConnection {
             val statement = prepareStatement("SELECT state FROM chats WHERE id = ?")
             statement.setInt(1, id)
@@ -52,7 +53,7 @@ class DbService {
         }
     }
 
-    fun createGroupInChat(chatId: Int, name: String, user: User): Int {
+    override fun createGroupInChat(chatId: Int, name: String, user: User): Int {
         return withConnection {
             val chatStatement = prepareStatement("UPDATE chats SET state=? WHERE id=?")
             chatStatement.setInt(1, SantaService.ChatState.Idle.id)
@@ -84,7 +85,7 @@ class DbService {
         }
     }
 
-    fun addToGroup(gid: Int, user: User): Boolean {
+    override fun addToGroup(gid: Int, user: User): Boolean {
         return withConnection {
             try {
                 val st = prepareStatement("INSERT INTO user_groups(gid, uid, u_name, u_username) VALUES (?, ?, ?, ?)")
@@ -104,7 +105,7 @@ class DbService {
         }
     }
 
-    fun removeFromGroup(gid: Int, user: User): Boolean {
+    override fun removeFromGroup(gid: Int, user: User): Boolean {
         return withConnection {
             try {
                 val st = prepareStatement("DELETE FROM user_groups WHERE gid = ? AND (uid = ? OR uid = ?)")
@@ -123,7 +124,7 @@ class DbService {
         }
     }
 
-    fun getGroup(gid: Int): Group? {
+    override fun getGroup(gid: Int): Group? {
         return withConnection {
             val st = prepareStatement("SELECT * FROM groups WHERE id = ?")
             st.setInt(1, gid)
@@ -133,7 +134,7 @@ class DbService {
         }
     }
 
-    fun setChatState(chatId: Int, state: SantaService.ChatState) = withConnection {
+    override fun setChatState(chatId: Int, state: SantaService.ChatState): Int = withConnection {
         val st = prepareStatement(
             "INSERT INTO chats (id, started, state) VALUES (?, now(), ?) " +
                     "ON CONFLICT(id) DO UPDATE SET started = now(), state = ?"
@@ -144,7 +145,7 @@ class DbService {
         st.executeUpdate()
     }
 
-    fun getGroupsForClose(user: User): List<Group> = withConnection {
+    override fun getGroupsForClose(user: User): List<Group> = withConnection {
         val st = prepareStatement("SELECT * FROM groups WHERE author = ? AND closed = false")
         st.setString(1, user.id.toString())
         val results = st.executeQuery()
@@ -158,7 +159,7 @@ class DbService {
         ret
     }
 
-    fun findAdminGroupByName(user: User, name: String): Group? = withConnection {
+    override fun findAdminGroupByName(user: User, name: String): Group? = withConnection {
         val st = prepareStatement("SELECT * FROM groups WHERE author = ? AND name = ? AND closed = false")
         st.setString(1, user.id.toString())
         st.setString(2, name)
@@ -171,13 +172,13 @@ class DbService {
         }
     }
 
-    fun closeGroup(gid: Int) = withConnection {
+    override fun closeGroup(gid: Int) = withConnection {
         val st = prepareStatement("UPDATE groups SET closed = true WHERE id = ?")
         st.setInt(1, gid)
         st.executeUpdate()
     }
 
-    fun getGroupMembers(gid: Int): List<String> = withConnection {
+    override fun getGroupMembers(gid: Int): List<String> = withConnection {
         val st = prepareStatement("SELECT uid FROM user_groups WHERE gid = ?")
         st.setInt(1, gid)
         val results = st.executeQuery()
@@ -190,7 +191,7 @@ class DbService {
         ret
     }
 
-    fun saveShuffled(gid: Int, shuffled: Map<String, String>) = withConnection {
+    override fun saveShuffled(gid: Int, shuffled: Map<String, String>) = withConnection {
         shuffled.forEach { uid, target ->
             val getSt = prepareStatement("SELECT u_name, u_username FROM user_groups WHERE gid = ? AND uid = ?")
             getSt.setInt(1, gid)
@@ -213,7 +214,7 @@ class DbService {
         }
     }
 
-    fun findTarget(gid: Int, user: User): DbUser? = withConnection {
+    override fun findTarget(gid: Int, user: User): DbUser? = withConnection {
         val st =
             prepareStatement("SELECT target, target_name, target_username FROM user_groups WHERE gid = ? AND (uid = ? OR uid = ?)")
         st.setInt(1, gid)

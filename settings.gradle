@@ -1,2 +1,4 @@
 rootProject.name = 'santabot'
+include 'core'
+include 'app'
 
