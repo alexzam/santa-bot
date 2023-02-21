@@ -4,6 +4,7 @@ import az.santabot.SantaService
 import az.santabot.TelegramService
 import az.santabot.model.Update
 import az.santabot.storage.PostgresDbService
+import az.santabot.util.genToken
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*
@@ -14,8 +15,6 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.runBlocking
-import kotlin.random.Random
-import kotlin.random.nextUBytes
 
 fun main() {
     embeddedServer(Netty, System.getenv("PORT")?.toIntOrNull() ?: 80, module = Application::santaBotModule)
@@ -25,13 +24,17 @@ fun main() {
 @OptIn(ExperimentalUnsignedTypes::class)
 fun Application.santaBotModule() {
     // DI for tiny app
-    val incomingToken = Random.nextUBytes(10).map { it.toString(16) }.fold("") { acc, s -> acc + s }
     val immediateResponseMode = false
 
     val dbService = PostgresDbService()
 
     val santaService = SantaService(dbService)
-    val telegramService = TelegramService(incomingToken, santaService)
+    val ownHost = System.getenv("OWN_HOST")
+
+    val baseUrl = "https://$ownHost/tg/"
+    val incomingToken = genToken()
+    val telegramService = TelegramService(santaService, baseUrl + incomingToken)
+
     santaService.telegramService = telegramService
 
     runBlocking { println("Telegram endpoint setup ($incomingToken): " + telegramService.setupEndpoint()) }

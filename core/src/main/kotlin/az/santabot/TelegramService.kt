@@ -11,14 +11,13 @@ import com.github.kittinunf.result.getOrElse
 import com.github.kittinunf.result.success
 
 class TelegramService(
-    private val incomingToken: String,
-    private val santaService: SantaService
+    private val santaService: SantaService,
+    private val url: String
 ) {
     private val token = System.getenv("TG_TOKEN")
-    private val ownHost = System.getenv("OWN_HOST")
 
     suspend fun setupEndpoint(): String {
-        val req = SetWebhookRequest("https://$ownHost/tg/$incomingToken")
+        val req = SetWebhookRequest(url)
 
         return sendRequest(req)
     }

@@ -19,6 +19,7 @@ application {
 dependencies {
     implementation(project(":core"))
     implementation(project(":storage-pg"))
+    implementation(project(":util"))
 
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
