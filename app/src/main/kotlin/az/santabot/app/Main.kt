@@ -2,7 +2,7 @@ package az.santabot.app
 
 import az.santabot.SantaService
 import az.santabot.TelegramService
-import az.santabot.model.Update
+import az.santabot.model.tg.Update
 import az.santabot.storage.PostgresDbService
 import az.santabot.util.genToken
 import io.ktor.http.*

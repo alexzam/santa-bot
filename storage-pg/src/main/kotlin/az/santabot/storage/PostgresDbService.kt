@@ -3,7 +3,7 @@ package az.santabot.storage
 import az.santabot.model.ChatState
 import az.santabot.model.DbUser
 import az.santabot.model.Group
-import az.santabot.model.User
+import az.santabot.model.tg.User
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.Statement
@@ -136,15 +136,17 @@ class PostgresDbService : DbService {
         }
     }
 
-    override fun setChatState(chatId: Int, state: ChatState): Int = withConnection {
-        val st = prepareStatement(
-            "INSERT INTO chats (id, started, state) VALUES (?, now(), ?) " +
-                    "ON CONFLICT(id) DO UPDATE SET started = now(), state = ?"
-        )
-        st.setInt(1, chatId)
-        st.setInt(2, state.id)
-        st.setInt(3, state.id)
-        st.executeUpdate()
+    override fun setChatState(chatId: Int, state: ChatState) {
+        withConnection {
+            val st = prepareStatement(
+                "INSERT INTO chats (id, started, state) VALUES (?, now(), ?) " +
+                        "ON CONFLICT(id) DO UPDATE SET started = now(), state = ?"
+            )
+            st.setInt(1, chatId)
+            st.setInt(2, state.id)
+            st.setInt(3, state.id)
+            st.executeUpdate()
+        }
     }
 
     override fun getGroupsForClose(user: User): List<Group> = withConnection {
@@ -174,10 +176,12 @@ class PostgresDbService : DbService {
         }
     }
 
-    override fun closeGroup(gid: Int) = withConnection {
-        val st = prepareStatement("UPDATE groups SET closed = true WHERE id = ?")
-        st.setInt(1, gid)
-        st.executeUpdate()
+    override fun closeGroup(gid: Int) {
+        withConnection {
+            val st = prepareStatement("UPDATE groups SET closed = true WHERE id = ?")
+            st.setInt(1, gid)
+            st.executeUpdate()
+        }
     }
 
     override fun getGroupMembers(gid: Int): List<String> = withConnection {

@@ -1,8 +1,8 @@
 package az.santabot
 
-import az.santabot.model.Request
-import az.santabot.model.SetWebhookRequest
-import az.santabot.model.Update
+import az.santabot.model.tg.Request
+import az.santabot.model.tg.SetWebhookRequest
+import az.santabot.model.tg.Update
 import com.github.kittinunf.fuel.coroutines.awaitStringResult
 import com.github.kittinunf.fuel.httpPost
 import com.github.kittinunf.fuel.jackson.objectBody

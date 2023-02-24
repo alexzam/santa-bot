@@ -1,6 +1,6 @@
 package az.santabot
 
-import az.santabot.model.Update
+import az.santabot.model.tg.Update
 import az.santabot.storage.PostgresDbService
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.cloud.functions.HttpFunction

@@ -1,4 +1,4 @@
-package az.santabot.model
+package az.santabot.model.tg
 
 import com.fasterxml.jackson.annotation.JsonProperty
 

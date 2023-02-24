@@ -1,6 +1,7 @@
 package az.santabot
 
 import az.santabot.model.*
+import az.santabot.model.tg.*
 import az.santabot.storage.DbService
 import az.santabot.util.shuffle
 import kotlinx.coroutines.GlobalScope
