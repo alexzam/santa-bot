@@ -11,7 +11,7 @@ repositories {
 
 dependencies {
     implementation(project(":core"))
-    implementation(project(":storage-pg"))
+    implementation(project(":storage-firestore"))
     implementation(project(":util"))
 
     implementation("com.google.cloud.functions:functions-framework-api:1.0.4")
