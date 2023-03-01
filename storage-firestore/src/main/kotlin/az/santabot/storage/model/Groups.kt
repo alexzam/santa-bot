@@ -2,7 +2,7 @@ package az.santabot.storage.model
 
 import com.google.cloud.firestore.DocumentSnapshot
 
-object Groups : FirestoreCollection<DbGroup>("groups") {
+internal object Groups : FirestoreCollection<DbGroup>("groups") {
     override fun DocumentSnapshot.toModel(): DbGroup =
         DbGroup(
             id = id.toInt(),
@@ -20,4 +20,15 @@ object Groups : FirestoreCollection<DbGroup>("groups") {
         "closed" to closed,
         "uids" to uids
     )
+
+    fun getAll(uid: Int) = find { whereArrayContains("uids", uid) }.map { it.toModel() }
+
+    fun getNotClosed(uid: Int) = find { whereEqualTo("author", uid).whereEqualTo("closed", false) }
+        .map { it.toModel() }
+
+    fun getNotClosed(uid: Int, name: String) = findOne {
+        whereEqualTo("author", uid)
+            .whereEqualTo("closed", false)
+            .whereEqualTo("name", name)
+    }?.toModel()
 }

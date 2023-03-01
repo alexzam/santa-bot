@@ -1,11 +1,13 @@
 package az.santabot.storage.model
 
 import az.santabot.storage.FirestoreUtil
+import az.santabot.storage.TxContext
+import az.santabot.storage.tx
 import com.google.cloud.firestore.*
 
 typealias QuerySetup = CollectionReference.() -> Query
 
-abstract class FirestoreCollection<T>(val name: String) {
+abstract internal class FirestoreCollection<T>(val name: String) {
     lateinit var db: Firestore
     private val collection get() = db.collection(name)
 
@@ -49,40 +51,41 @@ abstract class FirestoreCollection<T>(val name: String) {
             .document(id)
             .let { tx?.get(it) ?: it.get() }
             .get()
+            .takeIf { it.exists() }
             ?.toModel()
 
-    fun save(value: T, tx: Transaction? = null, id: String? = null): String {
+    fun save(value: T, ctx: TxContext? = null, id: String? = null): String {
         val col = db.collection(name)
-        val idToUpdate = id ?: value.naturalId() ?: FirestoreUtil.nextId(db, tx, name).toString()
+        val idToUpdate = id ?: value.naturalId() ?: FirestoreUtil.nextId(db, ctx, name).toString()
         val doc = value.toFirebase()
 
         val docRef = col.document(idToUpdate)
-        tx?.set(docRef, doc) ?: docRef.set(doc)
+        ctx?.let { it += { tx -> tx.set(docRef, doc) } } ?: docRef.set(doc)
 
         return idToUpdate
     }
 
-    fun remove(tx: Transaction?, querySetup: QuerySetup) {
+    fun remove(ctx: TxContext?, querySetup: QuerySetup) {
         db.collection(name)
             .querySetup()
-            .let { query -> tx?.get(query) ?: query.get() }
+            .let { query -> ctx?.tx?.get(query) ?: query.get() }
             .get()
             .forEach { doc ->
                 val docRef = doc.reference
-                tx?.delete(docRef) ?: docRef.delete()
+                ctx?.let { it += { tx -> tx.delete(docRef) } } ?: docRef.delete()
             }
     }
 
-    fun update(tx: Transaction?, querySetup: QuerySetup, updates: Map<String, Any?>) {
-        tx?.let { updateTx(tx, querySetup, updates) }
-            ?: db.runTransaction { updateTx(it, querySetup, updates) }
+    fun update(ctx: TxContext?, querySetup: QuerySetup, updates: Map<String, Any?>) {
+        ctx?.let { updateTx(ctx, querySetup, updates) }
+            ?: db.tx { updateTx(it, querySetup, updates) }
     }
 
-    private fun updateTx(tx: Transaction, querySetup: QuerySetup, updates: Map<String, Any?>) {
-        tx.get(collection.querySetup())
+    private fun updateTx(ctx: TxContext, querySetup: QuerySetup, updates: Map<String, Any?>) {
+        ctx.tx.get(collection.querySetup())
             .get()
             .forEach { doc ->
-                tx.update(doc.reference, updates)
+                ctx += { tx -> tx.update(doc.reference, updates) }
             }
     }
 }

@@ -6,8 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.cloud.functions.HttpFunction
 import com.google.cloud.functions.HttpRequest
 import com.google.cloud.functions.HttpResponse
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import java.text.DateFormat
+import kotlinx.coroutines.withContext
 
 @Suppress("unused")
 class GFunction : HttpFunction {
@@ -15,10 +16,8 @@ class GFunction : HttpFunction {
     private val inToken = System.getenv("IN_TOKEN")
     private val url = "https://$host/tg/$inToken"
     private val projectId = System.getenv("PROJECT_ID")
-    private val firestoreToken = System.getenv("FS_TOKEN")
-    private val firestoreTokenExpiration = DateFormat.getInstance().parse(System.getenv("FS_TOKEN_EXP"))
 
-    private val dbService = FirestoreDbService(projectId, firestoreToken, firestoreTokenExpiration)
+    private val dbService = FirestoreDbService(projectId)
     private val santaService = SantaService(dbService)
     private val telegramService = TelegramService(santaService, url)
         .also { santaService.telegramService = it }
@@ -28,8 +27,15 @@ class GFunction : HttpFunction {
         when (request.path) {
             "/tg/$inToken" -> {
                 val update = request.reader.use { objectMapper.readValue(it, Update::class.java) }
-                val resp = telegramService.onReceiveUpdate(update)
-                response.writer.write(objectMapper.writeValueAsString(resp))
+
+                runBlocking {
+                    val resp = telegramService.onReceiveUpdate(update)
+
+                    withContext(Dispatchers.IO) {
+                        response.writer.write("")
+                    }
+                    resp?.also { telegramService.sendRequest(it) }
+                }
             }
 
             "/setup" -> {

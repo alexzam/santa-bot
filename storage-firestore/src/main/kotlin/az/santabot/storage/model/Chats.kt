@@ -4,7 +4,7 @@ import az.santabot.model.ChatState
 import az.santabot.model.DbChat
 import com.google.cloud.firestore.DocumentSnapshot
 
-object Chats : FirestoreCollection<DbChat>("chats") {
+internal object Chats : FirestoreCollection<DbChat>("chats") {
     override fun DocumentSnapshot.toModel(): DbChat =
         DbChat(
             id = id.toInt(),

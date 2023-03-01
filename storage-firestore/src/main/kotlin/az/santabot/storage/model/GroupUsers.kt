@@ -1,9 +1,10 @@
 package az.santabot.storage.model
 
 import az.santabot.model.DbUser
+import az.santabot.storage.TxContext
 import com.google.cloud.firestore.DocumentSnapshot
 
-object GroupUsers : FirestoreCollection<GroupUser>("group_users") {
+internal object GroupUsers : FirestoreCollection<GroupUser>("group_users") {
     override fun DocumentSnapshot.toModel(): GroupUser =
         GroupUser(
             gid = eGetInt("gid"),
@@ -18,6 +19,23 @@ object GroupUsers : FirestoreCollection<GroupUser>("group_users") {
         "username" to username,
         "display" to display
     )
+
+    fun remove(ctx: TxContext, uid: Int, gid: Int) =
+        remove(ctx) { whereEqualTo("gid", gid).whereEqualTo("uid", uid) }
+
+    fun getByGid(gid: Int) = find { whereEqualTo("gid", gid) }
+
+    fun get(gid: Int, uid: Int, ctx: TxContext? = null) =
+        findOne(ctx?.tx) { whereEqualTo("gid", gid).whereEqualTo("uid", uid) }
+
+    fun updateTarget(ctx: TxContext, gid: Int, uid: Int, target: Int, targetName: String, targetUsername: String?) =
+        update(
+            ctx, querySetup = { whereEqualTo("gid", gid).whereEqualTo("uid", uid) }, mapOf(
+                "target" to target,
+                "target_name" to targetName,
+                "target_username" to targetUsername
+            )
+        )
 }
 
 class GroupUser(
