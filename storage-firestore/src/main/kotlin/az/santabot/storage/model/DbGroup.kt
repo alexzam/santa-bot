@@ -8,7 +8,8 @@ class DbGroup(
     val authorName: String,
     val membersNum: Int,
     val closed: Boolean,
-    val uids: List<Int>
+    val uids: List<Int>,
+    val author: Int
 ) {
     fun toModel() = Group(
         id = id,
@@ -24,7 +25,8 @@ class DbGroup(
         authorName = authorName,
         membersNum = newUids.size,
         closed = closed,
-        uids = newUids
+        uids = newUids,
+        author = author
     )
 
     fun withClosed(closed: Boolean) = DbGroup(
@@ -33,6 +35,7 @@ class DbGroup(
         authorName = authorName,
         membersNum = membersNum,
         closed = closed,
-        uids = uids
+        uids = uids,
+        author = author
     )
 }

@@ -10,7 +10,8 @@ internal object Groups : FirestoreCollection<DbGroup>("groups") {
             authorName = eGetString("authorName"),
             membersNum = eGetInt("membersNum"),
             closed = eGetBoolean("closed"),
-            uids = eGetArray("uids")
+            uids = eGetArray<Long>("uids").map { it.toInt() },
+            author = eGetInt("author")
         )
 
     override fun DbGroup.toFirebase(): Map<String, Any?> = mapOf(
@@ -18,8 +19,11 @@ internal object Groups : FirestoreCollection<DbGroup>("groups") {
         "authorName" to authorName,
         "membersNum" to membersNum,
         "closed" to closed,
-        "uids" to uids
+        "uids" to uids,
+        "author" to author
     )
+
+    override fun DbGroup.naturalId(): String = id.toString()
 
     fun getAll(uid: Int) = find { whereArrayContains("uids", uid) }.map { it.toModel() }
 

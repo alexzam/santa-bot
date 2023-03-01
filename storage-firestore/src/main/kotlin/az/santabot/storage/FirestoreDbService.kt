@@ -46,9 +46,8 @@ class FirestoreDbService(
         return db.tx { ctx ->
             Chats.save(DbChat(chatId, ChatState.Idle), ctx)
 
-            //TODO Is "author" needed here? It was set as user.id.toString()
             val gid = Groups.save(
-                DbGroup(-1, name, user.display, 1, false, listOf(user.id)),
+                DbGroup(-1, name, user.display, 1, false, listOf(user.id), user.id),
                 ctx
             ).toInt()
 
