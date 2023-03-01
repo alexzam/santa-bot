@@ -1,2 +1,9 @@
 rootProject.name = 'santabot'
+include 'core'
+include 'app'
+include 'storage'
+include 'util'
+include 'storage-pg'
+include 'gc-function'
+include 'storage-firestore'
 
