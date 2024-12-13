@@ -10,14 +10,20 @@ internal object GroupUsers : FirestoreCollection<GroupUser>("group_users") {
             gid = eGetInt("gid"),
             uid = eGetInt("uid"),
             username = eGetString("username"),
-            display = eGetString("display")
+            display = eGetString("display"),
+            target = eGetInt("target"),
+            targetName = eGetString("target_name"),
+            targetUsername = eGetString("target_username"),
         )
 
     override fun GroupUser.toFirebase(): Map<String, Any?> = mapOf(
         "gid" to gid,
         "uid" to uid,
         "username" to username,
-        "display" to display
+        "display" to display,
+        "target" to target,
+        "target_name" to targetName,
+        "target_username" to targetUsername,
     )
 
     fun remove(ctx: TxContext, uid: Int, gid: Int) =
@@ -42,8 +48,16 @@ class GroupUser(
     val gid: Int,
     val uid: Int,
     val username: String?,
-    val display: String
+    val display: String,
+    val target: Int = 0,
+    val targetName: String = "",
+    val targetUsername: String = "",
 ) {
     fun toDbUser(): DbUser =
         DbUser(display, username)
+
+    fun toTargetDbUser(): DbUser? =
+        if (targetName.isNotBlank() || targetUsername.isNotBlank())
+            DbUser(targetName, targetUsername)
+        else null
 }

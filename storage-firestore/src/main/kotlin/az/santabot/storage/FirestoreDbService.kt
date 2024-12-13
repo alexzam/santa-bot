@@ -48,7 +48,8 @@ class FirestoreDbService(
 
             val gid = Groups.save(
                 DbGroup(-1, name, user.display, 1, false, listOf(user.id), user.id),
-                ctx
+                ctx,
+                FirestoreUtil.nextId(db, ctx, Groups.name).toString()
             ).toInt()
 
             GroupUsers.save(
@@ -141,5 +142,5 @@ class FirestoreDbService(
     }.get()
 
     override fun findTarget(gid: Int, user: User): DbUser? =
-        GroupUsers.get(gid, user.id)?.toDbUser()
+        GroupUsers.get(gid, user.id)?.toTargetDbUser()
 }
